@@ -17,7 +17,7 @@ type User struct {
 }
 
 // Zero registration - just use clean generic API
-metadata := catalog.Select[User]()        // Comprehensive metadata
+metadata := catalog.Inspect[User]()        // Comprehensive metadata
 fields := catalog.GetFields[User]()       // Just field info
 scopes := catalog.GetScopes[User]()       // Security scopes
 container := catalog.Wrap(userInstance)   // Transparent container
@@ -117,7 +117,7 @@ type Product struct {
 }
 
 // No registration needed - just use the generic API
-metadata := catalog.Select[Product]()           // Full metadata
+metadata := catalog.Inspect[Product]()           // Full metadata
 fields := catalog.GetFields[Product]()          // Field details
 encryptedFields := catalog.GetEncryptionFields[Product]() // Security info
 ```

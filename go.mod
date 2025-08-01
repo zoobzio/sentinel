@@ -1,10 +1,10 @@
-module aegis/catalog
+module sentinel
 
 go 1.23.1
 
-require (
-	aegis/sctx v0.0.0-00010101000000-000000000000
-	github.com/zoobzio/pipz v0.1.0
-)
+require github.com/zoobzio/zlog v0.0.0
 
-replace aegis/sctx => ../sctx
+require github.com/zoobzio/pipz v0.6.0 // indirect
+
+replace github.com/zoobzio/zlog => ../zlog
+replace github.com/zoobzio/pipz => ../pipz
