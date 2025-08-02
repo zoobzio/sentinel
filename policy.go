@@ -19,6 +19,7 @@ type TypePolicy struct {
 	Ensure map[string]string `yaml:"ensure" json:"ensure"` // Required fields: name->type
 	Fields []FieldPolicy     `yaml:"fields" json:"fields"` // Field-level policies (legacy)
 	Rules  []Rule            `yaml:"rules" json:"rules"`   // Rule-based policies (new)
+	Codecs []string          `yaml:"codecs" json:"codecs"` // Supported codecs for this type
 }
 
 // FieldPolicy defines requirements for fields matching a pattern within a type.
@@ -87,6 +88,18 @@ func (s *Sentinel) applyPolicies(ctx *ExtractionContext) PolicyResult {
 
 // applyTypePolicy applies a single type policy to the extraction context.
 func (s *Sentinel) applyTypePolicy(ctx *ExtractionContext, policy *TypePolicy, result *PolicyResult) {
+	// Apply codecs if specified
+	if len(policy.Codecs) > 0 {
+		for _, codec := range policy.Codecs {
+			if IsValidCodec(codec) {
+				ctx.Metadata.Codecs = append(ctx.Metadata.Codecs, codec)
+			} else {
+				result.Warnings = append(result.Warnings,
+					fmt.Sprintf("Invalid codec '%s' for type %s", codec, ctx.Metadata.TypeName))
+			}
+		}
+	}
+
 	// Check required fields
 	for fieldName, fieldType := range policy.Ensure {
 		found := false

@@ -6,6 +6,7 @@ require github.com/zoobzio/zlog v0.0.0
 
 require (
 	github.com/zoobzio/pipz v0.6.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

@@ -91,6 +91,130 @@ func TestPolicyApplication(t *testing.T) {
 	}
 }
 
+func TestCodecApplication(t *testing.T) {
+	// Create a test sentinel with codec policies
+	s := New().
+		WithPolicy(Policy{
+			Name: "codec-policy",
+			Policies: []TypePolicy{
+				{
+					Match:  "*Request",
+					Codecs: []string{"json", "msgpack"},
+				},
+				{
+					Match:  "*Response",
+					Codecs: []string{"json", "xml"},
+				},
+			},
+		}).
+		Build()
+
+	// Test type that should match first pattern
+	type UserRequest struct {
+		ID   string
+		Name string
+	}
+
+	// Test type that should match second pattern
+	type UserResponse struct {
+		ID     string
+		Name   string
+		Status string
+	}
+
+	// Test type that shouldn't match any pattern
+	type UserModel struct {
+		ID   string
+		Name string
+	}
+
+	// Check UserRequest gets correct codecs
+	reqMetadata := Inspect[UserRequest](s)
+	if len(reqMetadata.Codecs) != 2 {
+		t.Errorf("expected UserRequest to have 2 codecs, got %d", len(reqMetadata.Codecs))
+	}
+	expectedCodecs := map[string]bool{"json": true, "msgpack": true}
+	for _, codec := range reqMetadata.Codecs {
+		if !expectedCodecs[codec] {
+			t.Errorf("unexpected codec %q for UserRequest", codec)
+		}
+		delete(expectedCodecs, codec)
+	}
+	if len(expectedCodecs) > 0 {
+		t.Errorf("missing codecs for UserRequest: %v", expectedCodecs)
+	}
+
+	// Check UserResponse gets correct codecs
+	respMetadata := Inspect[UserResponse](s)
+	if len(respMetadata.Codecs) != 2 {
+		t.Errorf("expected UserResponse to have 2 codecs, got %d", len(respMetadata.Codecs))
+	}
+	expectedCodecs = map[string]bool{"json": true, "xml": true}
+	for _, codec := range respMetadata.Codecs {
+		if !expectedCodecs[codec] {
+			t.Errorf("unexpected codec %q for UserResponse", codec)
+		}
+		delete(expectedCodecs, codec)
+	}
+	if len(expectedCodecs) > 0 {
+		t.Errorf("missing codecs for UserResponse: %v", expectedCodecs)
+	}
+
+	// Check UserModel has no codecs
+	modelMetadata := Inspect[UserModel](s)
+	if len(modelMetadata.Codecs) != 0 {
+		t.Errorf("expected UserModel to have no codecs, got %v", modelMetadata.Codecs)
+	}
+}
+
+func TestCodecValidation(t *testing.T) {
+	// Create a test sentinel with invalid codec in policy
+	s := New().
+		WithPolicy(Policy{
+			Name: "invalid-codec-policy",
+			Policies: []TypePolicy{
+				{
+					Match:  "*Data",
+					Codecs: []string{"json", "invalid-codec", "msgpack"},
+				},
+			},
+		}).
+		Build()
+
+	// Test type that should match
+	type UserData struct {
+		ID   string
+		Name string
+	}
+
+	// Extract metadata - should only have valid codecs
+	metadata := Inspect[UserData](s)
+
+	// Should only have the valid codecs
+	if len(metadata.Codecs) != 2 {
+		t.Errorf("expected UserData to have 2 valid codecs, got %d", len(metadata.Codecs))
+	}
+
+	// Check that only valid codecs are present
+	expectedCodecs := map[string]bool{"json": true, "msgpack": true}
+	for _, codec := range metadata.Codecs {
+		if !expectedCodecs[codec] {
+			t.Errorf("unexpected codec %q for UserData", codec)
+		}
+		delete(expectedCodecs, codec)
+	}
+	if len(expectedCodecs) > 0 {
+		t.Errorf("missing codecs for UserData: %v", expectedCodecs)
+	}
+
+	// Ensure invalid codec was not included
+	for _, codec := range metadata.Codecs {
+		if codec == "invalid-codec" {
+			t.Errorf("invalid codec 'invalid-codec' should not be in metadata")
+		}
+	}
+}
+
 func TestPolicyValidation(t *testing.T) {
 	// Test type missing required field
 	type BadRequest struct {
