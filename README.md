@@ -1,6 +1,6 @@
-# 📋 Catalog: Universal Model Metadata System
+# 📋 Sentinel: Universal Model Metadata System
 
-**Catalog** is the central nervous system of the zbz framework - a unified metadata extraction and caching layer that enables powerful model-driven features across the entire system.
+**Sentinel** is a standalone metadata extraction and caching system that enables powerful model-driven features through comprehensive struct tag analysis.
 
 ## 🎯 Core Concept
 
@@ -17,15 +17,15 @@ type User struct {
 }
 
 // Zero registration - just use clean generic API
-metadata := catalog.Inspect[User]()        // Comprehensive metadata
-fields := catalog.GetFields[User]()       // Just field info
-scopes := catalog.GetScopes[User]()       // Security scopes
-container := catalog.Wrap(userInstance)   // Transparent container
+metadata := sentinel.Inspect[User]()        // Comprehensive metadata
+fields := sentinel.GetFields[User]()       // Just field info
+scopes := sentinel.GetScopes[User]()       // Security scopes
+container := sentinel.Wrap(userInstance)   // Transparent container
 ```
 
 ## 🚀 Supported Struct Tags
 
-Catalog recognizes and extracts comprehensive metadata from these struct tags:
+Sentinel recognizes and extracts comprehensive metadata from these struct tags:
 
 ### **Core Tags**
 - `json:"field_name"` - JSON serialization name
@@ -48,7 +48,7 @@ Catalog recognizes and extracts comprehensive metadata from these struct tags:
 
 ## 📦 Container Pattern (Transparent)
 
-Catalog automatically wraps user models in containers with standard system fields:
+Sentinel automatically wraps user models in containers with standard system fields:
 
 ```go
 type Container[T any] struct {
@@ -64,7 +64,7 @@ type Container[T any] struct {
 
 ## 🎨 Convention Detection
 
-Catalog automatically detects when models implement framework conventions:
+Sentinel automatically detects when models implement framework conventions:
 
 ```go
 // ScopeProvider convention
@@ -117,37 +117,37 @@ type Product struct {
 }
 
 // No registration needed - just use the generic API
-metadata := catalog.Inspect[Product]()           // Full metadata
-fields := catalog.GetFields[Product]()          // Field details
-encryptedFields := catalog.GetEncryptionFields[Product]() // Security info
+metadata := sentinel.Inspect[Product]()           // Full metadata
+fields := sentinel.GetFields[Product]()          // Field details
+encryptedFields := sentinel.GetEncryptionFields[Product]() // Security info
 ```
 
 ### Specialized Accessors
 ```go
 // Get only what you need
-scopes := catalog.GetScopes[User]()             // ["profile", "admin", "hr"]  
-redactionRules := catalog.GetRedactionRules[User]() // {"SSN": "XXX-XX-XXXX"}
-validatedFields := catalog.GetValidationFields[User]() // Fields with rules
-hasScope := catalog.HasConvention[User]("ScopeProvider") // true/false
+scopes := sentinel.GetScopes[User]()             // ["profile", "admin", "hr"]  
+redactionRules := sentinel.GetRedactionRules[User]() // {"SSN": "XXX-XX-XXXX"}
+validatedFields := sentinel.GetValidationFields[User]() // Fields with rules
+hasScope := sentinel.HasConvention[User]("ScopeProvider") // true/false
 ```
 
 ### Consuming Metadata in Services
 ```go
 // Cereal package using clean generic API
-scopes := catalog.GetScopes[User]()
+scopes := sentinel.GetScopes[User]()
 for _, scope := range scopes {
     // Apply scope-based security
     checkUserPermission(scope)
 }
 
 // Validation package gets validation rules
-validatedFields := catalog.GetValidationFields[User]()
+validatedFields := sentinel.GetValidationFields[User]()
 for _, field := range validatedFields {
     addValidationRule(field)
 }
 
 // HTTP package gets examples for OpenAPI
-fields := catalog.GetFields[User]()
+fields := sentinel.GetFields[User]()
 for _, field := range fields {
     if field.Example != nil {
         addExampleToSchema(field.Name, field.Example)
@@ -155,7 +155,7 @@ for _, field := range fields {
 }
 
 // Encryption package gets field-level encryption requirements
-encryptedFields := catalog.GetEncryptionFields[User]()
+encryptedFields := sentinel.GetEncryptionFields[User]()
 for _, field := range encryptedFields {
     configureEncryption(field.Name, field.Encryption.Type)
 }
@@ -164,7 +164,7 @@ for _, field := range encryptedFields {
 ## 🧪 Testing & Development
 
 ```bash
-# Run all catalog tests
+# Run all sentinel tests
 go test -v
 
 # Test the clean generic API
@@ -190,13 +190,13 @@ go test -v -run TestLazyMetadataExtraction
 
 ## 🚀 Framework Integration
 
-Catalog serves as the foundation for all zbz framework services:
+Sentinel can be integrated with various services to provide:
 
-- **🥣 cereal**: Field-level scoping and redaction
-- **🌐 HTTP**: Auto-generated OpenAPI documentation  
-- **🗄️ Database**: Schema generation and encryption
-- **🔐 Auth**: Permission-based field access
-- **📊 Metrics**: Model usage tracking
-- **🔍 Audit**: Comprehensive change logging
+- **Field-level Security**: Scoping and redaction based on permissions
+- **API Documentation**: Auto-generated OpenAPI specifications  
+- **Database Integration**: Schema generation and encryption requirements
+- **Access Control**: Permission-based field access
+- **Usage Tracking**: Model usage metrics and monitoring
+- **Audit Logging**: Comprehensive change tracking
 
 **The entire application becomes self-aware of its data models.**

@@ -1,4 +1,4 @@
-package catalog
+package sentinel
 
 import (
 	"testing"
@@ -35,7 +35,7 @@ func TestInspect(t *testing.T) {
 	Tag("desc")
 
 	t.Run("basic struct inspection", func(t *testing.T) {
-		metadata := Inspect[SimpleStruct]()
+		metadata := InspectDefault[SimpleStruct]()
 
 		if metadata.TypeName != "SimpleStruct" {
 			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
@@ -55,7 +55,7 @@ func TestInspect(t *testing.T) {
 	})
 
 	t.Run("complex struct with multiple tags", func(t *testing.T) {
-		metadata := Inspect[TestUser]()
+		metadata := InspectDefault[TestUser]()
 
 		if metadata.TypeName != "TestUser" {
 			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
@@ -94,15 +94,13 @@ func TestInspect(t *testing.T) {
 
 	t.Run("caching behavior", func(t *testing.T) {
 		// Clear cache first
-		cacheMutex.Lock()
-		metadataCache = make(map[string]ModelMetadata)
-		cacheMutex.Unlock()
+		defaultSentinel.cache.Clear()
 
 		// First call should cache
-		metadata1 := Inspect[TestUser]()
+		metadata1 := InspectDefault[TestUser]()
 
 		// Second call should return cached value
-		metadata2 := Inspect[TestUser]()
+		metadata2 := InspectDefault[TestUser]()
 
 		// Verify caching worked by comparing field count (should be identical)
 		if len(metadata2.Fields) != len(metadata1.Fields) {
@@ -117,8 +115,8 @@ func TestInspect(t *testing.T) {
 
 	t.Run("pointer type normalization", func(t *testing.T) {
 		// Both should return same metadata
-		valueMeta := Inspect[TestUser]()
-		pointerMeta := Inspect[*TestUser]()
+		valueMeta := InspectDefault[TestUser]()
+		pointerMeta := InspectDefault[*TestUser]()
 
 		if valueMeta.TypeName != pointerMeta.TypeName {
 			t.Errorf("expected same TypeName, got %s vs %s", valueMeta.TypeName, pointerMeta.TypeName)
@@ -136,7 +134,7 @@ func TestInspect(t *testing.T) {
 			}
 		}()
 
-		Inspect[string]() // Should panic
+		InspectDefault[string]() // Should panic
 	})
 
 	t.Run("panic on slice types", func(t *testing.T) {
@@ -146,27 +144,26 @@ func TestInspect(t *testing.T) {
 			}
 		}()
 
-		Inspect[[]TestUser]() // Should panic
+		InspectDefault[[]TestUser]() // Should panic
 	})
 }
 
 func TestTag(t *testing.T) {
 	t.Run("register custom tag", func(t *testing.T) {
-		// Clear registered tags
-		tagMutex.Lock()
-		registeredTags = make(map[string]bool)
-		tagMutex.Unlock()
+		// Create a new sentinel for this test
+		s := New().Build()
 
 		// Register a custom tag
-		Tag("custom")
+		s.Tag("custom")
 
-		// Verify it was registered
-		tagMutex.RLock()
-		registered := registeredTags["custom"]
-		tagMutex.RUnlock()
+		// Verify it was registered by using it
+		type CustomStruct struct {
+			Field string `custom:"value"`
+		}
 
-		if !registered {
-			t.Error("expected 'custom' tag to be registered")
+		metadata := Inspect[CustomStruct](s)
+		if metadata.Fields[0].Tags["custom"] != "value" {
+			t.Error("expected 'custom' tag to be extracted")
 		}
 	})
 
@@ -179,7 +176,7 @@ func TestTag(t *testing.T) {
 			UserField  string `json:"user_field" scope:"user"`
 		}
 
-		metadata := Inspect[ScopedStruct]()
+		metadata := InspectDefault[ScopedStruct]()
 
 		// Check that scope tags were extracted
 		for _, field := range metadata.Fields {
@@ -201,20 +198,18 @@ func TestTag(t *testing.T) {
 
 func TestBrowse(t *testing.T) {
 	t.Run("browse registered types", func(t *testing.T) {
-		// Clear cache
-		cacheMutex.Lock()
-		metadataCache = make(map[string]ModelMetadata)
-		cacheMutex.Unlock()
+		// Create a new sentinel for this test
+		s := New().Build()
 
 		// Register some types
-		Inspect[SimpleStruct]()
-		Inspect[TestUser]()
-		Inspect[NestedStruct]()
+		Inspect[SimpleStruct](s)
+		Inspect[TestUser](s)
+		Inspect[NestedStruct](s)
 
-		types := Browse()
+		types := s.Browse()
 
 		if len(types) != 3 {
-			t.Fatalf("expected 3 types, got %d", len(types))
+			t.Fatalf("expected 3 types, got %d: %v", len(types), types)
 		}
 
 		// Check that all expected types are present
@@ -235,12 +230,9 @@ func TestBrowse(t *testing.T) {
 	})
 
 	t.Run("empty browse", func(t *testing.T) {
-		// Clear cache
-		cacheMutex.Lock()
-		metadataCache = make(map[string]ModelMetadata)
-		cacheMutex.Unlock()
-
-		types := Browse()
+		// Create a fresh sentinel for this test
+		s := New().Build()
+		types := s.Browse()
 
 		if len(types) != 0 {
 			t.Errorf("expected empty browse result, got %d types", len(types))
@@ -252,7 +244,7 @@ func TestEdgeCases(t *testing.T) {
 	t.Run("struct with no fields", func(t *testing.T) {
 		type EmptyStruct struct{}
 
-		metadata := Inspect[EmptyStruct]()
+		metadata := InspectDefault[EmptyStruct]()
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 fields, got %d", len(metadata.Fields))
@@ -265,7 +257,7 @@ func TestEdgeCases(t *testing.T) {
 			private2 int    //nolint:unused // intentionally unused for testing
 		}
 
-		metadata := Inspect[PrivateStruct]()
+		metadata := InspectDefault[PrivateStruct]()
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 exported fields, got %d", len(metadata.Fields))
@@ -273,7 +265,7 @@ func TestEdgeCases(t *testing.T) {
 	})
 
 	t.Run("nil pointer type", func(t *testing.T) {
-		metadata := Inspect[*TestUser]()
+		metadata := InspectDefault[*TestUser]()
 
 		// Should still work and return metadata
 		if metadata.TypeName != "TestUser" {
