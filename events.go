@@ -4,6 +4,11 @@ import (
 	"time"
 )
 
+// Event type constants.
+const (
+	eventTypeExtraction = "extraction"
+)
+
 // Event is the base interface for all sentinel observability events.
 // Each event type provides specific data about sentinel's internal operations.
 type Event interface {
@@ -27,7 +32,7 @@ type ExtractionEvent struct {
 	Package    string        `json:"package,omitempty"`
 }
 
-func (ExtractionEvent) EventType() string { return "extraction" }
+func (ExtractionEvent) EventType() string { return eventTypeExtraction }
 
 // CacheEvent is emitted for cache operations.
 type CacheEvent struct {

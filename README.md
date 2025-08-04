@@ -16,11 +16,11 @@ type User struct {
     Salary int    `json:"salary" scope:"hr" encrypt:"financial"`
 }
 
-// Zero registration - just use clean generic API
-metadata := sentinel.Inspect[User]()        // Comprehensive metadata
-fields := sentinel.GetFields[User]()       // Just field info
-scopes := sentinel.GetScopes[User]()       // Security scopes
-container := sentinel.Wrap(userInstance)   // Transparent container
+// Zero configuration - just use clean generic API
+metadata := sentinel.Inspect[User]()      // Comprehensive metadata
+fields := sentinel.GetFields[User]()      // Just field info  
+scopes := sentinel.GetScopes[User]()      // Security scopes
+container := sentinel.Wrap(userInstance)  // Transparent container
 ```
 
 ## 🚀 Supported Struct Tags
@@ -116,7 +116,7 @@ type Product struct {
     Category string  `json:"category" scope:"admin"`
 }
 
-// No registration needed - just use the generic API
+// Zero configuration - just use the generic API
 metadata := sentinel.Inspect[Product]()           // Full metadata
 fields := sentinel.GetFields[Product]()          // Field details
 encryptedFields := sentinel.GetEncryptionFields[Product]() // Security info
@@ -124,16 +124,16 @@ encryptedFields := sentinel.GetEncryptionFields[Product]() // Security info
 
 ### Specialized Accessors
 ```go
-// Get only what you need
-scopes := sentinel.GetScopes[User]()             // ["profile", "admin", "hr"]  
-redactionRules := sentinel.GetRedactionRules[User]() // {"SSN": "XXX-XX-XXXX"}
+// Get only what you need - zero configuration
+scopes := sentinel.GetScopes[User]()                    // ["profile", "admin", "hr"]  
+redactionRules := sentinel.GetRedactionRules[User]()    // {"SSN": "XXX-XX-XXXX"}
 validatedFields := sentinel.GetValidationFields[User]() // Fields with rules
 hasScope := sentinel.HasConvention[User]("ScopeProvider") // true/false
 ```
 
 ### Consuming Metadata in Services
 ```go
-// Cereal package using clean generic API
+// Cereal package using clean generic API - zero configuration
 scopes := sentinel.GetScopes[User]()
 for _, scope := range scopes {
     // Apply scope-based security

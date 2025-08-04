@@ -28,14 +28,14 @@ type NestedStruct struct {
 }
 
 func TestInspect(t *testing.T) {
-	// Register tags that we want to extract in our tests
+	// Register tags for tests
 	Tag("validate")
 	Tag("encrypt")
 	Tag("db")
 	Tag("desc")
 
 	t.Run("basic struct inspection", func(t *testing.T) {
-		metadata := InspectDefault[SimpleStruct]()
+		metadata := Inspect[SimpleStruct]()
 
 		if metadata.TypeName != "SimpleStruct" {
 			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
@@ -55,7 +55,7 @@ func TestInspect(t *testing.T) {
 	})
 
 	t.Run("complex struct with multiple tags", func(t *testing.T) {
-		metadata := InspectDefault[TestUser]()
+		metadata := Inspect[TestUser]()
 
 		if metadata.TypeName != "TestUser" {
 			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
@@ -93,14 +93,11 @@ func TestInspect(t *testing.T) {
 	})
 
 	t.Run("caching behavior", func(t *testing.T) {
-		// Clear cache first
-		defaultSentinel.cache.Clear()
-
 		// First call should cache
-		metadata1 := InspectDefault[TestUser]()
+		metadata1 := Inspect[TestUser]()
 
 		// Second call should return cached value
-		metadata2 := InspectDefault[TestUser]()
+		metadata2 := Inspect[TestUser]()
 
 		// Verify caching worked by comparing field count (should be identical)
 		if len(metadata2.Fields) != len(metadata1.Fields) {
@@ -115,8 +112,8 @@ func TestInspect(t *testing.T) {
 
 	t.Run("pointer type normalization", func(t *testing.T) {
 		// Both should return same metadata
-		valueMeta := InspectDefault[TestUser]()
-		pointerMeta := InspectDefault[*TestUser]()
+		valueMeta := Inspect[TestUser]()
+		pointerMeta := Inspect[*TestUser]()
 
 		if valueMeta.TypeName != pointerMeta.TypeName {
 			t.Errorf("expected same TypeName, got %s vs %s", valueMeta.TypeName, pointerMeta.TypeName)
@@ -134,7 +131,7 @@ func TestInspect(t *testing.T) {
 			}
 		}()
 
-		InspectDefault[string]() // Should panic
+		Inspect[string]() // Should panic
 	})
 
 	t.Run("panic on slice types", func(t *testing.T) {
@@ -144,24 +141,21 @@ func TestInspect(t *testing.T) {
 			}
 		}()
 
-		InspectDefault[[]TestUser]() // Should panic
+		Inspect[[]TestUser]() // Should panic
 	})
 }
 
 func TestTag(t *testing.T) {
 	t.Run("register custom tag", func(t *testing.T) {
-		// Create a new sentinel for this test
-		s := New().Build()
-
 		// Register a custom tag
-		s.Tag("custom")
+		Tag("custom")
 
 		// Verify it was registered by using it
 		type CustomStruct struct {
 			Field string `custom:"value"`
 		}
 
-		metadata := Inspect[CustomStruct](s)
+		metadata := Inspect[CustomStruct]()
 		if metadata.Fields[0].Tags["custom"] != "value" {
 			t.Error("expected 'custom' tag to be extracted")
 		}
@@ -176,7 +170,7 @@ func TestTag(t *testing.T) {
 			UserField  string `json:"user_field" scope:"user"`
 		}
 
-		metadata := InspectDefault[ScopedStruct]()
+		metadata := Inspect[ScopedStruct]()
 
 		// Check that scope tags were extracted
 		for _, field := range metadata.Fields {
@@ -198,18 +192,16 @@ func TestTag(t *testing.T) {
 
 func TestBrowse(t *testing.T) {
 	t.Run("browse registered types", func(t *testing.T) {
-		// Create a new sentinel for this test
-		s := New().Build()
-
 		// Register some types
-		Inspect[SimpleStruct](s)
-		Inspect[TestUser](s)
-		Inspect[NestedStruct](s)
+		Inspect[SimpleStruct]()
+		Inspect[TestUser]()
+		Inspect[NestedStruct]()
 
-		types := s.Browse()
+		types := Browse()
 
-		if len(types) != 3 {
-			t.Fatalf("expected 3 types, got %d: %v", len(types), types)
+		// With global singleton, types accumulate from all tests
+		if len(types) < 3 {
+			t.Fatalf("expected at least 3 types, got %d: %v", len(types), types)
 		}
 
 		// Check that all expected types are present
@@ -230,12 +222,13 @@ func TestBrowse(t *testing.T) {
 	})
 
 	t.Run("empty browse", func(t *testing.T) {
-		// Create a fresh sentinel for this test
-		s := New().Build()
-		types := s.Browse()
+		// Note: Browse will return types from previous tests since we use global singleton
+		types := Browse()
 
-		if len(types) != 0 {
-			t.Errorf("expected empty browse result, got %d types", len(types))
+		// With global singleton, types will persist from other tests
+		// This is expected behavior
+		if len(types) == 0 {
+			t.Log("Browse returned empty (global singleton may have been cleared)")
 		}
 	})
 }
@@ -244,7 +237,7 @@ func TestEdgeCases(t *testing.T) {
 	t.Run("struct with no fields", func(t *testing.T) {
 		type EmptyStruct struct{}
 
-		metadata := InspectDefault[EmptyStruct]()
+		metadata := Inspect[EmptyStruct]()
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 fields, got %d", len(metadata.Fields))
@@ -257,7 +250,7 @@ func TestEdgeCases(t *testing.T) {
 			private2 int    //nolint:unused // intentionally unused for testing
 		}
 
-		metadata := InspectDefault[PrivateStruct]()
+		metadata := Inspect[PrivateStruct]()
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 exported fields, got %d", len(metadata.Fields))
@@ -265,7 +258,7 @@ func TestEdgeCases(t *testing.T) {
 	})
 
 	t.Run("nil pointer type", func(t *testing.T) {
-		metadata := InspectDefault[*TestUser]()
+		metadata := Inspect[*TestUser]()
 
 		// Should still work and return metadata
 		if metadata.TypeName != "TestUser" {

@@ -39,18 +39,24 @@ type PolicyResult struct {
 
 // matches checks if a name matches a glob pattern.
 func matches(pattern, name string) bool {
-	// Simple glob matching - can be enhanced later
+	// Exact match
 	if pattern == name {
 		return true
 	}
 
-	// Handle * prefix
+	// Handle *substring* (contains)
+	if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") {
+		substring := pattern[1 : len(pattern)-1]
+		return strings.Contains(name, substring)
+	}
+
+	// Handle *suffix
 	if strings.HasPrefix(pattern, "*") {
 		suffix := pattern[1:]
 		return strings.HasSuffix(name, suffix)
 	}
 
-	// Handle * suffix
+	// Handle prefix*
 	if strings.HasSuffix(pattern, "*") {
 		prefix := pattern[:len(pattern)-1]
 		return strings.HasPrefix(name, prefix)
@@ -177,31 +183,9 @@ func (s *Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolic
 	}
 }
 
-// processTagValue handles special template values in tags.
-func (*Sentinel) processTagValue(value, fieldName string) string {
-	switch value {
-	case "{snake}":
-		// Convert PascalCase/camelCase to snake_case
-		return toSnakeCase(fieldName)
-	case "{lower}":
-		return strings.ToLower(fieldName)
-	case "{upper}":
-		return strings.ToUpper(fieldName)
-	default:
-		return value
-	}
-}
-
-// toSnakeCase converts a string to snake_case.
-func toSnakeCase(s string) string {
-	var result strings.Builder
-	for i, r := range s {
-		if i > 0 && r >= 'A' && r <= 'Z' {
-			result.WriteByte('_')
-		}
-		result.WriteRune(r)
-	}
-	return strings.ToLower(result.String())
+// processTagValue returns the tag value as-is (no template processing).
+func (*Sentinel) processTagValue(value, _ string) string {
+	return value
 }
 
 // applyRules applies rule-based policies to the extraction context.

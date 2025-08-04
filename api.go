@@ -11,6 +11,21 @@ import (
 	"github.com/zoobzio/zlog"
 )
 
+// Global singleton instance.
+var instance *Sentinel
+
+// Initialize the global sentinel instance.
+func init() {
+	instance = &Sentinel{
+		cache:          NewMemoryCache(),
+		registeredTags: make(map[string]bool),
+		policies:       []Policy{},
+		config:         Config{StrictMode: false},
+		logger:         zlog.NewLogger[SentinelEvent](),
+	}
+	instance.pipeline = instance.buildExtractionPipeline()
+}
+
 // Sentinel is the main type intelligence orchestrator.
 // It provides metadata extraction, caching, and policy enforcement.
 //
@@ -47,70 +62,8 @@ type Config struct {
 	StrictMode bool
 }
 
-// Builder provides a fluent API for constructing a Sentinel instance.
-type Builder struct {
-	sentinel *Sentinel
-}
-
-// New creates a new Sentinel builder.
-func New() *Builder {
-	s := &Sentinel{
-		registeredTags: make(map[string]bool),
-		policies:       []Policy{},
-		config:         Config{},
-		logger:         zlog.NewLogger[SentinelEvent](),
-	}
-
-	return &Builder{sentinel: s}
-}
-
-// WithCache sets the cache implementation.
-func (b *Builder) WithCache(cache Cache) *Builder {
-	b.sentinel.cache = cache
-	return b
-}
-
-// WithPolicy adds one or more policies to be applied during extraction.
-func (b *Builder) WithPolicy(policies ...Policy) *Builder {
-	b.sentinel.policies = append(b.sentinel.policies, policies...)
-	return b
-}
-
-// WithStrictMode enables strict policy enforcement (errors instead of warnings).
-func (b *Builder) WithStrictMode() *Builder {
-	b.sentinel.config.StrictMode = true
-	return b
-}
-
-// WithHook adds a hook to process specific sentinel events.
-// This allows users to listen to internal operations like cache hits, policy applications, etc.
-func (b *Builder) WithHook(signal zlog.Signal, hook pipz.Chainable[zlog.Event[SentinelEvent]]) *Builder {
-	b.sentinel.logger.Hook(signal, hook)
-	return b
-}
-
-// WithWatch enables forwarding of sentinel events to the global zlog logger.
-// This integrates sentinel's observability with the application's logging system.
-func (b *Builder) WithWatch() *Builder {
-	b.sentinel.logger.Watch()
-	return b
-}
-
-// Build creates the configured Sentinel instance.
-func (b *Builder) Build() *Sentinel {
-	// Set default cache if none provided
-	if b.sentinel.cache == nil {
-		b.sentinel.cache = NewMemoryCache()
-	}
-
-	// Build the extraction pipeline
-	b.sentinel.pipeline = b.sentinel.buildExtractionPipeline()
-
-	return b.sentinel
-}
-
 // Inspect returns comprehensive metadata for a type.
-func Inspect[T any](s *Sentinel) ModelMetadata {
+func Inspect[T any]() ModelMetadata {
 	var zero T
 	t := reflect.TypeOf(zero)
 
@@ -126,8 +79,8 @@ func Inspect[T any](s *Sentinel) ModelMetadata {
 	typeName := getTypeName(t)
 
 	// Check cache first
-	if cached, exists := s.cache.Get(typeName); exists {
-		s.logger.Emit(CACHE_HIT, "Cache hit for type", CacheEvent{
+	if cached, exists := instance.cache.Get(typeName); exists {
+		instance.logger.Emit(CACHE_HIT, "Cache hit for type", CacheEvent{
 			TypeName:  typeName,
 			Operation: "hit",
 		})
@@ -135,7 +88,7 @@ func Inspect[T any](s *Sentinel) ModelMetadata {
 	}
 
 	// Log cache miss
-	s.logger.Emit(CACHE_MISS, "Cache miss for type", CacheEvent{
+	instance.logger.Emit(CACHE_MISS, "Cache miss for type", CacheEvent{
 		TypeName:  typeName,
 		Operation: "miss",
 	})
@@ -148,11 +101,11 @@ func Inspect[T any](s *Sentinel) ModelMetadata {
 
 	// Run through extraction pipeline
 	start := time.Now()
-	result, err := s.pipeline.Process(context.Background(), ec)
+	result, err := instance.pipeline.Process(context.Background(), ec)
 	if err != nil {
 		// In strict mode, return empty metadata with error info
 		// In non-strict mode, we could potentially return partial metadata
-		if s.config.StrictMode {
+		if instance.config.StrictMode {
 			panic(fmt.Sprintf("sentinel: extraction failed: %v", err))
 		}
 	}
@@ -160,7 +113,7 @@ func Inspect[T any](s *Sentinel) ModelMetadata {
 	metadata := result.Metadata
 
 	// Emit extraction event
-	s.logger.Emit(METADATA_EXTRACTED, "Metadata extracted", ExtractionEvent{
+	instance.logger.Emit(METADATA_EXTRACTED, "Metadata extracted", ExtractionEvent{
 		TypeName:   typeName,
 		FieldCount: len(metadata.Fields),
 		Duration:   time.Since(start),
@@ -168,33 +121,53 @@ func Inspect[T any](s *Sentinel) ModelMetadata {
 		Package:    t.PkgPath(),
 	})
 
-	s.cache.Set(typeName, metadata)
+	instance.cache.Set(typeName, metadata)
 
 	// Emit cache set event
-	s.logger.Emit(CACHE_HIT, "Metadata cached", CacheEvent{
+	instance.logger.Emit(CACHE_HIT, "Metadata cached", CacheEvent{
 		TypeName:  typeName,
 		Operation: "set",
-		CacheSize: s.cache.Size(),
+		CacheSize: instance.cache.Size(),
 	})
 
 	return metadata
 }
 
 // Tag registers a struct tag to be extracted during metadata processing.
-func (s *Sentinel) Tag(tagName string) {
-	s.tagMutex.Lock()
-	defer s.tagMutex.Unlock()
+func Tag(tagName string) {
+	instance.tagMutex.Lock()
+	defer instance.tagMutex.Unlock()
 
-	alreadyExists := s.registeredTags[tagName]
-	s.registeredTags[tagName] = true
+	alreadyExists := instance.registeredTags[tagName]
+	instance.registeredTags[tagName] = true
 
-	s.logger.Emit(TAG_REGISTERED, "Tag registered", TagEvent{
+	instance.logger.Emit(TAG_REGISTERED, "Tag registered", TagEvent{
 		TagName:       tagName,
 		AlreadyExists: alreadyExists,
 	})
 }
 
 // Browse returns all type names that have been cached.
-func (s *Sentinel) Browse() []string {
-	return s.cache.Keys()
+func Browse() []string {
+	return instance.cache.Keys()
+}
+
+// AddPolicy adds one or more policies to be applied during extraction.
+func AddPolicy(policies ...Policy) {
+	instance.policies = append(instance.policies, policies...)
+	// Rebuild the pipeline to include new policies
+	instance.pipeline = instance.buildExtractionPipeline()
+}
+
+// SetPolicies replaces all policies with the provided set.
+// Useful for refreshing policies from a distributed source.
+func SetPolicies(policies []Policy) {
+	instance.policies = policies
+	// Rebuild the pipeline with new policies
+	instance.pipeline = instance.buildExtractionPipeline()
+}
+
+// GetPolicies returns the currently configured policies.
+func GetPolicies() []Policy {
+	return instance.policies
 }

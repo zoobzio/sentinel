@@ -9,32 +9,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// WithPolicyFile loads a policy from a YAML file.
-func (b *Builder) WithPolicyFile(path string) *Builder {
-	policy, err := LoadPolicyFile(path)
-	if err != nil {
-		// Could panic or log error - for now, skip the policy
-		// TODO: Consider how to handle errors in builder pattern
-		return b
-	}
-
-	return b.WithPolicy(policy)
-}
-
-// WithPolicyDir loads all YAML policy files from a directory.
-func (b *Builder) WithPolicyDir(dir string) *Builder {
-	policies, err := LoadPolicyDir(dir)
-	if err != nil {
-		// Could panic or log error - for now, skip
-		return b
-	}
-
-	for _, policy := range policies {
-		b.WithPolicy(policy)
-	}
-
-	return b
-}
+// Note: Policy loading functions are available but with singleton pattern,
+// policies would need to be applied differently to the global instance.
 
 // LoadPolicyFile loads a policy from a YAML file.
 func LoadPolicyFile(path string) (Policy, error) {
