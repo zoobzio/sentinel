@@ -29,6 +29,14 @@ type BenchmarkSimpleStruct struct {
 	Value string `json:"value"`
 }
 
+// Setup admin for benchmarks.
+func init() {
+	// Set up sealed configuration for benchmarks
+	resetAdminForTesting()
+	admin := NewAdmin()
+	admin.Seal()
+}
+
 func BenchmarkInspectSimple(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

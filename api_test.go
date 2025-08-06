@@ -27,7 +27,17 @@ type NestedStruct struct {
 	Enabled bool     `json:"enabled"`
 }
 
+// setupSentinelForTest initializes and seals sentinel for testing.
+func setupSentinelForTest() {
+	resetAdminForTesting()
+	admin := NewAdmin()
+	admin.Seal()
+}
+
 func TestInspect(t *testing.T) {
+	// Setup sentinel with sealed configuration
+	setupSentinelForTest()
+
 	// Register tags for tests
 	Tag("validate")
 	Tag("encrypt")

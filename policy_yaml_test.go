@@ -303,7 +303,6 @@ func TestValidatePolicy(t *testing.T) {
 						Fields: []FieldPolicy{
 							{
 								Match: "ID",
-								Apply: map[string]string{"json": "id"},
 							},
 						},
 					},
@@ -346,9 +345,7 @@ func TestValidatePolicy(t *testing.T) {
 					{
 						Match: "*Model",
 						Fields: []FieldPolicy{
-							{
-								Apply: map[string]string{"json": "id"},
-							},
+							{},
 						},
 					},
 				},
@@ -358,7 +355,7 @@ func TestValidatePolicy(t *testing.T) {
 		{
 			name: "field policy with no rules",
 			policy: Policy{
-				Name: "invalid",
+				Name: "valid",
 				Policies: []TypePolicy{
 					{
 						Match: "*Model",
@@ -370,7 +367,7 @@ func TestValidatePolicy(t *testing.T) {
 					},
 				},
 			},
-			wantErr: "must have either require or apply",
+			wantErr: "", // Empty field policies are now valid
 		},
 	}
 
@@ -405,7 +402,6 @@ func TestMarshalPolicy(t *testing.T) {
 						Match:   "Password",
 						Type:    "string",
 						Require: map[string]string{"validate": "required"},
-						Apply:   map[string]string{"redact": "[HIDDEN]"},
 					},
 				},
 			},

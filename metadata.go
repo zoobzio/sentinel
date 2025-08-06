@@ -52,10 +52,13 @@ func IsValidCodec(codec string) bool {
 
 // ModelMetadata contains comprehensive information about a user model.
 type ModelMetadata struct {
-	TypeName    string          `json:"type_name"`
-	PackageName string          `json:"package_name"`
-	Fields      []FieldMetadata `json:"fields"`
-	Codecs      []string        `json:"codecs,omitempty"`
+	TypeName       string             `json:"type_name"`
+	PackageName    string             `json:"package_name"`
+	Fields         []FieldMetadata    `json:"fields"`
+	Conventions    []string           `json:"conventions,omitempty"`
+	Classification string             `json:"classification,omitempty"`
+	Codecs         []string           `json:"codecs,omitempty"`
+	Relationships  []TypeRelationship `json:"relationships,omitempty"`
 }
 
 // FieldMetadata captures field-level information and all struct tags.
@@ -78,3 +81,20 @@ func getTypeName(t reflect.Type) string {
 	}
 	return t.Name()
 }
+
+// TypeRelationship represents a relationship between two types.
+type TypeRelationship struct {
+	From      string `json:"from"`       // Source type name
+	To        string `json:"to"`         // Target type name
+	Field     string `json:"field"`      // Field creating the relationship
+	Kind      string `json:"kind"`       // "reference", "collection", "embedding"
+	ToPackage string `json:"to_package"` // Target type's package path
+}
+
+// RelationshipKind constants for different relationship types.
+const (
+	RelationshipReference  = "reference"  // Direct field reference (e.g., Profile *Profile)
+	RelationshipCollection = "collection" // Slice/array of types (e.g., Orders []Order)
+	RelationshipEmbedding  = "embedding"  // Anonymous field embedding
+	RelationshipMap        = "map"        // Map with struct values
+)

@@ -4,8 +4,6 @@ import (
 	"context"
 	"reflect"
 	"testing"
-
-	"github.com/zoobzio/zlog"
 )
 
 func TestExtractionContext(t *testing.T) {
@@ -250,7 +248,6 @@ func TestBuildExtractionPipeline(t *testing.T) {
 	s := &Sentinel{
 		registeredTags: make(map[string]bool),
 		policies:       []Policy{},
-		logger:         zlog.NewLogger[SentinelEvent](),
 	}
 
 	pipeline := s.buildExtractionPipeline()

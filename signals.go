@@ -24,4 +24,7 @@ const (
 
 	// Event type: TagEvent.
 	TAG_REGISTERED = zlog.Signal("TAG_REGISTERED")
+
+	// Event type: AdminEvent.
+	ADMIN_ACTION = zlog.Signal("ADMIN_ACTION")
 )

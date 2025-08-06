@@ -3,8 +3,6 @@ package sentinel
 import (
 	"reflect"
 	"testing"
-
-	"github.com/zoobzio/zlog"
 )
 
 func TestPolicyStructure(t *testing.T) {
@@ -18,7 +16,6 @@ func TestPolicyStructure(t *testing.T) {
 					Fields: []FieldPolicy{
 						{
 							Match: "Password",
-							Apply: map[string]string{"redact": "[HIDDEN]"},
 						},
 					},
 				},
@@ -58,7 +55,6 @@ func TestPolicyStructure(t *testing.T) {
 			Match:   "Email",
 			Type:    "string",
 			Require: map[string]string{"validate": "email"},
-			Apply:   map[string]string{"encrypt": "pii"},
 		}
 
 		if fp.Match != "Email" {
@@ -118,37 +114,10 @@ func TestMatches(t *testing.T) {
 	}
 }
 
-func TestProcessTagValue(t *testing.T) {
-	s := &Sentinel{}
-
-	tests := []struct {
-		value     string
-		fieldName string
-		want      string
-	}{
-		// Now just returns values as-is (no templates)
-		{"custom_name", "UserID", "custom_name"},
-		{"literal", "Whatever", "literal"},
-		{"", "Field", ""},
-		{"json", "FieldName", "json"},
-		{"db_column", "AnyField", "db_column"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.value+"_"+tt.fieldName, func(t *testing.T) {
-			got := s.processTagValue(tt.value, tt.fieldName)
-			if got != tt.want {
-				t.Errorf("processTagValue(%q, %q) = %q, want %q", tt.value, tt.fieldName, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestApplyPolicies(t *testing.T) {
 	t.Run("no policies", func(t *testing.T) {
 		s := &Sentinel{
 			policies: []Policy{},
-			logger:   zlog.NewLogger[SentinelEvent](),
 		}
 
 		ec := &ExtractionContext{
@@ -170,55 +139,6 @@ func TestApplyPolicies(t *testing.T) {
 		}
 	})
 
-	t.Run("apply field tags", func(t *testing.T) {
-		s := &Sentinel{
-			policies: []Policy{
-				{
-					Name: "test-policy",
-					Policies: []TypePolicy{
-						{
-							Match: "*Struct",
-							Fields: []FieldPolicy{
-								{
-									Match: "Name",
-									Apply: map[string]string{
-										"json": "name",
-										"db":   "name_field",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			logger: zlog.NewLogger[SentinelEvent](),
-		}
-
-		ec := &ExtractionContext{
-			Type: reflect.TypeOf(struct{ Name string }{}),
-			Metadata: ModelMetadata{
-				TypeName: "TestStruct",
-				Fields: []FieldMetadata{
-					{Name: "Name", Type: "string", Tags: map[string]string{}},
-				},
-			},
-		}
-
-		result := s.applyPolicies(ec)
-		if len(result.Applied) != 1 {
-			t.Errorf("expected 1 policy applied, got %v", result.Applied)
-		}
-
-		// Check tags were applied
-		tags := ec.Metadata.Fields[0].Tags
-		if tags["json"] != "name" {
-			t.Errorf("expected json tag 'name', got %s", tags["json"])
-		}
-		if tags["db"] != "name_field" {
-			t.Errorf("expected db tag 'name_field', got %s", tags["db"])
-		}
-	})
-
 	t.Run("ensure fields", func(t *testing.T) {
 		s := &Sentinel{
 			policies: []Policy{
@@ -235,7 +155,6 @@ func TestApplyPolicies(t *testing.T) {
 					},
 				},
 			},
-			logger: zlog.NewLogger[SentinelEvent](),
 		}
 
 		// Missing required field
@@ -288,7 +207,6 @@ func TestApplyPolicies(t *testing.T) {
 					},
 				},
 			},
-			logger: zlog.NewLogger[SentinelEvent](),
 		}
 
 		ec := &ExtractionContext{

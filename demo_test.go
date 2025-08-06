@@ -6,6 +6,11 @@ import (
 )
 
 func TestPolicySystemDemo(t *testing.T) {
+	// Setup sealed configuration
+	resetAdminForTesting()
+	admin := NewAdmin()
+	admin.Seal()
+
 	// Define test types
 	type UserRequest struct {
 		ID       string `json:"id"`

@@ -8,7 +8,6 @@ import (
 // Rule represents a conditional policy rule with rich matching capabilities.
 type Rule struct {
 	When    *When             `yaml:"when,omitempty" json:"when,omitempty"`
-	Apply   map[string]string `yaml:"apply,omitempty" json:"apply,omitempty"`
 	Require map[string]string `yaml:"require,omitempty" json:"require,omitempty"`
 	Forbid  []string          `yaml:"forbid,omitempty" json:"forbid,omitempty"`
 }

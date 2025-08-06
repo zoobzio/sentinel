@@ -12,9 +12,6 @@ func TestRuleStructure(t *testing.T) {
 			When: &When{
 				FieldName: &StringMatcher{Exact: "Password"},
 			},
-			Apply: map[string]string{
-				"redact": "[HIDDEN]",
-			},
 			Require: map[string]string{
 				"validate": "required",
 			},
@@ -23,9 +20,6 @@ func TestRuleStructure(t *testing.T) {
 
 		if rule.When == nil {
 			t.Error("expected When condition")
-		}
-		if len(rule.Apply) != 1 {
-			t.Errorf("expected 1 apply rule, got %d", len(rule.Apply))
 		}
 		if len(rule.Require) != 1 {
 			t.Errorf("expected 1 require rule, got %d", len(rule.Require))
@@ -452,10 +446,6 @@ func TestRuleApplication(t *testing.T) {
 			When: &When{
 				FieldName: &StringMatcher{Pattern: "*Password*"},
 			},
-			Apply: map[string]string{
-				"redact": "[HIDDEN]",
-				"no_log": "true",
-			},
 		}
 
 		// Simulate checking if rule applies to a field
@@ -478,11 +468,11 @@ func TestRuleValidation(t *testing.T) {
 			When: &When{
 				FieldName: &StringMatcher{Exact: "ID"},
 			},
-			Apply: map[string]string{"json": "id"},
+			Require: map[string]string{"validate": "required"},
 		}
 
 		// Rule should have at least one action
-		if len(rule.Apply) == 0 && len(rule.Require) == 0 && len(rule.Forbid) == 0 {
+		if len(rule.Require) == 0 && len(rule.Forbid) == 0 {
 			t.Error("rule should have at least one action")
 		}
 	})
@@ -491,7 +481,7 @@ func TestRuleValidation(t *testing.T) {
 		rule := Rule{}
 
 		// Empty rule with no actions is not very useful.
-		if len(rule.Apply) == 0 && len(rule.Require) == 0 && len(rule.Forbid) == 0 {
+		if len(rule.Require) == 0 && len(rule.Forbid) == 0 {
 			// This is expected - empty rules are allowed but not useful.
 			_ = rule // Using rule to avoid unused variable warning.
 		}
@@ -507,9 +497,8 @@ when:
     - json
   not:
     field.name: "Internal"
-apply:
-  redact: "[HIDDEN]"
 require:
+  redact: "[HIDDEN]"
   validate: "required"
 forbid:
   - log
@@ -531,7 +520,7 @@ forbid:
 	if len(rule.When.HasTag) != 1 || rule.When.HasTag[0] != "json" {
 		t.Errorf("expected has_tag [json], got %v", rule.When.HasTag)
 	}
-	if rule.Apply["redact"] != "[HIDDEN]" {
-		t.Errorf("expected redact '[HIDDEN]', got %s", rule.Apply["redact"])
+	if rule.Require["redact"] != "[HIDDEN]" {
+		t.Errorf("expected redact '[HIDDEN]', got %s", rule.Require["redact"])
 	}
 }

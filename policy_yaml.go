@@ -94,10 +94,7 @@ func ValidatePolicy(policy Policy) error {
 				return fmt.Errorf("field policy %d.%d must have a match pattern", i, j)
 			}
 
-			// At least one of Require or Apply should be set
-			if len(fp.Require) == 0 && len(fp.Apply) == 0 {
-				return fmt.Errorf("field policy %d.%d must have either require or apply rules", i, j)
-			}
+			// Field policies are optional - they can be empty for pattern matching
 		}
 	}
 

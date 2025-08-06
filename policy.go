@@ -6,35 +6,55 @@ import (
 	"strings"
 )
 
+// Convention defines a method pattern that types can implement.
+type Convention struct {
+	Name       string   `yaml:"name" json:"name"`       // Convention identifier (e.g., "defaults")
+	MethodName string   `yaml:"method" json:"method"`   // Method name to look for
+	Params     []string `yaml:"params" json:"params"`   // Expected parameter types
+	Returns    []string `yaml:"returns" json:"returns"` // Expected return types
+}
+
 // Policy represents a collection of type-level policies that can be applied
 // during metadata extraction.
 type Policy struct {
-	Name     string       `yaml:"name" json:"name"`
-	Policies []TypePolicy `yaml:"policies" json:"policies"`
+	Name        string       `yaml:"name" json:"name"`
+	Policies    []TypePolicy `yaml:"policies" json:"policies"`
+	Conventions []Convention `yaml:"conventions" json:"conventions"` // Method conventions to detect
 }
 
 // TypePolicy defines requirements and field policies for types matching a pattern.
 type TypePolicy struct {
-	Match  string            `yaml:"match" json:"match"`   // Type name pattern (glob)
-	Ensure map[string]string `yaml:"ensure" json:"ensure"` // Required fields: name->type
-	Fields []FieldPolicy     `yaml:"fields" json:"fields"` // Field-level policies (legacy)
-	Rules  []Rule            `yaml:"rules" json:"rules"`   // Rule-based policies (new)
-	Codecs []string          `yaml:"codecs" json:"codecs"` // Supported codecs for this type
+	Match          string            `yaml:"match" json:"match"`                   // Type name pattern (glob)
+	Classification string            `yaml:"classification" json:"classification"` // Security classification level
+	Ensure         map[string]string `yaml:"ensure" json:"ensure"`                 // Required fields: name->type
+	Fields         []FieldPolicy     `yaml:"fields" json:"fields"`                 // Field-level policies (legacy)
+	Rules          []Rule            `yaml:"rules" json:"rules"`                   // Rule-based policies (new)
+	Codecs         []string          `yaml:"codecs" json:"codecs"`                 // Supported codecs for this type
 }
 
 // FieldPolicy defines requirements for fields matching a pattern within a type.
 type FieldPolicy struct {
 	Require map[string]string `yaml:"require,omitempty" json:"require,omitempty"` // Tags that MUST exist
-	Apply   map[string]string `yaml:"apply,omitempty" json:"apply,omitempty"`     // Tags to ALWAYS add/override
 	Match   string            `yaml:"match" json:"match"`                         // Field name pattern (glob)
 	Type    string            `yaml:"type,omitempty" json:"type,omitempty"`       // Required type
 }
 
 // PolicyResult contains the outcome of applying policies to metadata.
 type PolicyResult struct {
-	Applied  []string // Names of policies that were applied
-	Warnings []string // Non-fatal issues found
-	Errors   []string // Fatal issues that prevent extraction
+	PolicyMetrics  map[string]PolicyApplicationMetrics // Per-policy metrics
+	Applied        []string                            // Names of policies that were applied
+	Warnings       []string                            // Non-fatal issues found
+	Errors         []string                            // Fatal issues that prevent extraction
+	AffectedFields []string                            // Names of fields that were changed
+	FieldsModified int                                 // Number of fields that were modified
+	TagsApplied    int                                 // Number of tags that were applied
+}
+
+// PolicyApplicationMetrics tracks what a specific policy changed.
+type PolicyApplicationMetrics struct {
+	AffectedFields []string // Fields affected by this policy
+	FieldsModified int      // Fields modified by this policy
+	TagsApplied    int      // Tags applied by this policy
 }
 
 // matches checks if a name matches a glob pattern.
@@ -44,8 +64,13 @@ func matches(pattern, name string) bool {
 		return true
 	}
 
+	// Handle single * (matches everything)
+	if pattern == "*" {
+		return true
+	}
+
 	// Handle *substring* (contains)
-	if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") {
+	if strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*") && len(pattern) > 1 {
 		substring := pattern[1 : len(pattern)-1]
 		return strings.Contains(name, substring)
 	}
@@ -73,9 +98,13 @@ func matches(pattern, name string) bool {
 // applyPolicies applies all configured policies to the extraction context.
 func (s *Sentinel) applyPolicies(ctx *ExtractionContext) PolicyResult {
 	result := PolicyResult{
-		Applied:  []string{},
-		Warnings: []string{},
-		Errors:   []string{},
+		Applied:        []string{},
+		Warnings:       []string{},
+		Errors:         []string{},
+		FieldsModified: 0,
+		TagsApplied:    0,
+		AffectedFields: []string{},
+		PolicyMetrics:  make(map[string]PolicyApplicationMetrics),
 	}
 
 	for _, policy := range s.policies {
@@ -94,6 +123,11 @@ func (s *Sentinel) applyPolicies(ctx *ExtractionContext) PolicyResult {
 
 // applyTypePolicy applies a single type policy to the extraction context.
 func (s *Sentinel) applyTypePolicy(ctx *ExtractionContext, policy *TypePolicy, result *PolicyResult) {
+	// Apply classification if specified
+	if policy.Classification != "" {
+		ctx.Metadata.Classification = policy.Classification
+	}
+
 	// Apply codecs if specified
 	if len(policy.Codecs) > 0 {
 		for _, codec := range policy.Codecs {
@@ -139,8 +173,8 @@ func (s *Sentinel) applyTypePolicy(ctx *ExtractionContext, policy *TypePolicy, r
 }
 
 // applyFieldPolicies applies field-level policies to matching fields.
-func (s *Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolicy, result *PolicyResult) {
-	for i, field := range ctx.Metadata.Fields {
+func (*Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolicy, result *PolicyResult) {
+	for _, field := range ctx.Metadata.Fields {
 		if !matches(policy.Match, field.Name) {
 			continue
 		}
@@ -167,49 +201,21 @@ func (s *Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolic
 			}
 		}
 
-		// Apply override tags
-		for tag, value := range policy.Apply {
-			// Special processing for template values
-			processedValue := s.processTagValue(value, field.Name)
-
-			// Initialize tags map if needed
-			if ctx.Metadata.Fields[i].Tags == nil {
-				ctx.Metadata.Fields[i].Tags = make(map[string]string)
-			}
-
-			// Apply the tag
-			ctx.Metadata.Fields[i].Tags[tag] = processedValue
-		}
 	}
 }
 
-// processTagValue returns the tag value as-is (no template processing).
-func (*Sentinel) processTagValue(value, _ string) string {
-	return value
-}
-
 // applyRules applies rule-based policies to the extraction context.
-func (s *Sentinel) applyRules(ctx *ExtractionContext, rules []Rule, result *PolicyResult) {
+func (*Sentinel) applyRules(ctx *ExtractionContext, rules []Rule, result *PolicyResult) {
 	evalCtx := &EvaluationContext{
 		Type: &ctx.Metadata,
 	}
 
 	// Apply rules to each field
-	for i, field := range ctx.Metadata.Fields {
+	for _, field := range ctx.Metadata.Fields {
 		evalCtx.Field = &field
 
 		for _, rule := range rules {
 			if rule.When == nil || rule.When.Evaluate(evalCtx) {
-				// Apply tags
-				if rule.Apply != nil {
-					if ctx.Metadata.Fields[i].Tags == nil {
-						ctx.Metadata.Fields[i].Tags = make(map[string]string)
-					}
-					for k, v := range rule.Apply {
-						ctx.Metadata.Fields[i].Tags[k] = s.processTagValue(v, field.Name)
-					}
-				}
-
 				// Check requirements
 				if rule.Require != nil {
 					for tag, expected := range rule.Require {
