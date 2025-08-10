@@ -54,7 +54,10 @@ func TestClassificationSystem(t *testing.T) {
 
 	// Reset admin for testing and set our test policy
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.SetPolicies([]Policy{policy})
 	admin.Seal()
 
@@ -104,7 +107,10 @@ func TestClassificationSystem(t *testing.T) {
 
 		// Test type with no classification
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.SetPolicies([]Policy{}) // Clear policies
 		admin.Seal()
 		if HasClassification[PublicData]() {
@@ -113,7 +119,10 @@ func TestClassificationSystem(t *testing.T) {
 
 		// Restore policy
 		resetAdminForTesting()
-		admin = NewAdmin()
+		admin, err = NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.SetPolicies([]Policy{policy})
 		admin.Seal()
 	})
@@ -139,7 +148,10 @@ func TestClassificationSystem(t *testing.T) {
 		}
 
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.SetPolicies([]Policy{overridePolicy})
 		admin.Seal()
 
@@ -152,7 +164,10 @@ func TestClassificationSystem(t *testing.T) {
 	t.Run("EmptyClassification", func(t *testing.T) {
 		// Test with no policies
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.SetPolicies([]Policy{})
 		admin.Seal()
 
@@ -165,7 +180,10 @@ func TestClassificationSystem(t *testing.T) {
 	t.Run("ClassificationInMetadata", func(t *testing.T) {
 		// Ensure classification is properly stored in metadata
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.SetPolicies([]Policy{policy})
 		admin.Seal()
 
@@ -215,7 +233,10 @@ func TestClassificationPrecedence(t *testing.T) {
 		}
 
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.SetPolicies(policies)
 		admin.Seal()
 

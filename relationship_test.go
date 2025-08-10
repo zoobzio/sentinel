@@ -55,7 +55,10 @@ type ExternalDB struct {
 func TestRelationshipExtraction(t *testing.T) {
 	// Reset for clean test
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.Seal()
 
 	t.Run("BasicRelationships", func(t *testing.T) {
@@ -176,7 +179,10 @@ func TestRelationshipExtraction(t *testing.T) {
 func TestRelationshipAPIs(t *testing.T) {
 	// Reset and inspect our test types
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.Seal()
 	Inspect[User]()
 	Inspect[Profile]()
@@ -239,7 +245,10 @@ func TestRelationshipAPIs(t *testing.T) {
 func TestERDGeneration(t *testing.T) {
 	// Reset and inspect our test types
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.Seal()
 	Inspect[User]()
 	Inspect[Profile]()
@@ -328,7 +337,10 @@ func TestERDGeneration(t *testing.T) {
 func TestRelationshipEdgeCases(t *testing.T) {
 	// Reset for clean test
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.Seal()
 
 	t.Run("SliceOfPointers", func(t *testing.T) {

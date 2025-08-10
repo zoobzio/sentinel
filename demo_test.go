@@ -8,7 +8,10 @@ import (
 func TestPolicySystemDemo(t *testing.T) {
 	// Setup sealed configuration
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.Seal()
 
 	// Define test types

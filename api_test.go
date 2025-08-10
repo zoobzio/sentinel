@@ -30,7 +30,10 @@ type NestedStruct struct {
 // setupSentinelForTest initializes and seals sentinel for testing.
 func setupSentinelForTest() {
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		panic(err) // In tests, panic is acceptable
+	}
 	admin.Seal()
 }
 

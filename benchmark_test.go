@@ -33,7 +33,10 @@ type BenchmarkSimpleStruct struct {
 func init() {
 	// Set up sealed configuration for benchmarks
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		panic("failed to create admin for benchmarks: " + err.Error())
+	}
 	admin.Seal()
 }
 

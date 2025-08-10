@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -21,20 +22,20 @@ var (
 )
 
 // NewAdmin creates the singleton Admin instance.
-// Panics if an admin instance already exists in this process.
-func NewAdmin() *Admin {
+// Returns an error if an admin instance already exists in this process.
+func NewAdmin() (*Admin, error) {
 	adminMutex.Lock()
 	defer adminMutex.Unlock()
 
 	if adminCreated {
-		panic("sentinel: admin already exists - only one admin allowed per process")
+		return nil, fmt.Errorf("sentinel: admin already exists - only one admin allowed per process")
 	}
 
 	adminCreated = true
 	adminInstance = &Admin{
 		sentinel: instance, // Reference to global sentinel
 	}
-	return adminInstance
+	return adminInstance, nil
 }
 
 // GetAdmin returns the existing admin instance if it exists, nil otherwise.

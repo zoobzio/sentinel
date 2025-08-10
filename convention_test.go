@@ -74,7 +74,10 @@ func TestConventionDetection(t *testing.T) {
 
 	// Clear any existing policies and set our test policy
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.SetPolicies([]Policy{policy})
 	admin.Seal()
 
@@ -146,7 +149,10 @@ func TestConventionAPI(t *testing.T) {
 		},
 	}
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.SetPolicies([]Policy{policy})
 	admin.Seal()
 
@@ -210,7 +216,10 @@ func TestSpecialTokens(t *testing.T) {
 		},
 	}
 	resetAdminForTesting()
-	admin := NewAdmin()
+	admin, err := NewAdmin()
+	if err != nil {
+		t.Fatalf("failed to create admin: %v", err)
+	}
 	admin.SetPolicies([]Policy{policy})
 	admin.Seal()
 

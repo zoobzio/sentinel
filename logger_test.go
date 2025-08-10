@@ -33,7 +33,10 @@ func TestLogger(t *testing.T) {
 	t.Run("CanRegisterSinkForExtractionEvents", func(t *testing.T) {
 		// Setup
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.Seal()
 
 		// User registers a hook to capture extraction events
@@ -118,7 +121,10 @@ func TestLogger(t *testing.T) {
 	t.Run("CanRegisterSinkForCacheEvents", func(t *testing.T) {
 		// Setup
 		resetAdminForTesting()
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 		admin.Seal()
 
 		var cacheEvents []CacheEvent
@@ -190,7 +196,10 @@ func TestLogger(t *testing.T) {
 		Logger.Admin.Hook("ADMIN_ACTION", hook)
 
 		// These should trigger admin events
-		admin := NewAdmin()
+		admin, err := NewAdmin()
+		if err != nil {
+			t.Fatalf("failed to create admin: %v", err)
+		}
 
 		policy := Policy{
 			Name:     "AdminTestPolicy",
