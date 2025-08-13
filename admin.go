@@ -38,14 +38,6 @@ func NewAdmin() (*Admin, error) {
 	return adminInstance, nil
 }
 
-// GetAdmin returns the existing admin instance if it exists, nil otherwise.
-// Use this to check if an admin has been created without creating one.
-func GetAdmin() *Admin {
-	adminMutex.Lock()
-	defer adminMutex.Unlock()
-	return adminInstance
-}
-
 // SetPolicies replaces all policies with the provided set.
 // This immediately invalidates cached metadata to ensure consistency.
 // Panics if called after Seal().
