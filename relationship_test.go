@@ -59,7 +59,9 @@ func TestRelationshipExtraction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	t.Run("BasicRelationships", func(t *testing.T) {
 		metadata := Inspect[User]()
@@ -183,7 +185,9 @@ func TestRelationshipAPIs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 	Inspect[User]()
 	Inspect[Profile]()
 	Inspect[Order]()
@@ -249,7 +253,9 @@ func TestERDGeneration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 	Inspect[User]()
 	Inspect[Profile]()
 	Inspect[Address]()
@@ -341,7 +347,9 @@ func TestRelationshipEdgeCases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	t.Run("SliceOfPointers", func(t *testing.T) {
 		type Item struct {

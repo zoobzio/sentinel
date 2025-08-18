@@ -34,7 +34,9 @@ func setupSentinelForTest() {
 	if err != nil {
 		panic(err) // In tests, panic is acceptable
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err) // In tests, panic is acceptable
+	}
 }
 
 func TestInspect(t *testing.T) {

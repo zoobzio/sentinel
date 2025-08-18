@@ -37,7 +37,9 @@ func init() {
 	if err != nil {
 		panic("failed to create admin for benchmarks: " + err.Error())
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 }
 
 func BenchmarkInspectSimple(b *testing.B) {

@@ -9,10 +9,11 @@ import (
 
 // Admin provides exclusive write access to sentinel policies.
 // Only one admin instance is allowed per process to prevent conflicting policy changes.
-// Once sealed, no further policy changes are allowed.
+// Configuration can be sealed/unsealed to control when changes are allowed.
 type Admin struct {
-	sentinel *Sentinel
-	sealed   atomic.Bool // Configuration is frozen once sealed
+	sentinel      *Sentinel
+	sealed        atomic.Bool  // Configuration is frozen once sealed
+	configSession atomic.Int32 // Tracks configuration sessions
 }
 
 var (
@@ -35,15 +36,16 @@ func NewAdmin() (*Admin, error) {
 	adminInstance = &Admin{
 		sentinel: instance, // Reference to global sentinel
 	}
+
 	return adminInstance, nil
 }
 
 // SetPolicies replaces all policies with the provided set.
 // This immediately invalidates cached metadata to ensure consistency.
-// Panics if called after Seal().
-func (a *Admin) SetPolicies(policies []Policy) {
+// Returns an error if called when configuration is sealed.
+func (a *Admin) SetPolicies(policies []Policy) error {
 	if a.sealed.Load() {
-		panic("sentinel: cannot modify policies after configuration is sealed")
+		return fmt.Errorf("sentinel: cannot modify policies while configuration is sealed - call Unseal() first")
 	}
 
 	// Update policies
@@ -62,14 +64,15 @@ func (a *Admin) SetPolicies(policies []Policy) {
 		Action:      "policy_set",
 		PolicyCount: len(policies),
 	})
+	return nil
 }
 
 // AddPolicy adds one or more policies to the current set.
 // This immediately invalidates cached metadata to ensure consistency.
-// Panics if called after Seal().
-func (a *Admin) AddPolicy(policies ...Policy) {
+// Returns an error if called when configuration is sealed.
+func (a *Admin) AddPolicy(policies ...Policy) error {
 	if a.sealed.Load() {
-		panic("sentinel: cannot modify policies after configuration is sealed")
+		return fmt.Errorf("sentinel: cannot modify policies while configuration is sealed - call Unseal() first")
 	}
 
 	// Add to existing policies
@@ -88,6 +91,7 @@ func (a *Admin) AddPolicy(policies ...Policy) {
 		Action:      "policy_added",
 		PolicyCount: len(a.sentinel.policies),
 	})
+	return nil
 }
 
 // GetPolicies returns a copy of the currently configured policies.
@@ -100,16 +104,18 @@ func (a *Admin) GetPolicies() []Policy {
 }
 
 // Seal freezes the configuration, preventing any further policy changes.
-// After sealing, type inspection is allowed but policy modifications will panic.
-// This enforces proper initialization order: configure policies first, then use sentinel.
-func (a *Admin) Seal() {
+// After sealing, type inspection is allowed but policy modifications will return errors.
+func (a *Admin) Seal() error {
 	if a.sealed.Load() {
-		panic("sentinel: configuration already sealed")
+		return fmt.Errorf("sentinel: configuration already sealed")
 	}
 	a.sealed.Store(true)
 
 	// Mark the global instance as sealed too
 	instance.configSealed.Store(true)
+
+	// Increment session counter
+	a.configSession.Add(1)
 
 	// Emit admin event
 	Logger.Admin.Emit("ADMIN_ACTION", "Configuration sealed", AdminEvent{
@@ -117,6 +123,31 @@ func (a *Admin) Seal() {
 		Action:      "sealed",
 		PolicyCount: len(a.sentinel.policies),
 	})
+	return nil
+}
+
+// Unseal allows configuration changes again by clearing the cache and unsealing.
+// This ensures proper cache invalidation when policies change.
+func (a *Admin) Unseal() error {
+	if !a.sealed.Load() {
+		return fmt.Errorf("sentinel: configuration is not sealed")
+	}
+
+	// Clear the cache to ensure consistency with new policies
+	a.sentinel.cache.Clear()
+
+	// Unseal both admin and global instance
+	a.sealed.Store(false)
+	instance.configSealed.Store(false)
+
+	// Emit admin event
+	Logger.Admin.Emit("ADMIN_ACTION", "Configuration unsealed", AdminEvent{
+		Timestamp:   time.Now(),
+		Action:      "unsealed",
+		PolicyCount: len(a.sentinel.policies),
+	})
+
+	return nil
 }
 
 // IsSealed returns true if the configuration has been sealed.
@@ -124,11 +155,24 @@ func (a *Admin) IsSealed() bool {
 	return a.sealed.Load()
 }
 
+// ConfigSession returns the current configuration session number.
+// This increments each time Seal() is called.
+func (a *Admin) ConfigSession() int32 {
+	return a.configSession.Load()
+}
+
 // resetAdminForTesting resets the admin singleton state.
 // This is only for testing purposes and should not be used in production code.
 func resetAdminForTesting() {
 	adminMutex.Lock()
 	defer adminMutex.Unlock()
+
+	// Reset admin fields if it exists
+	if adminInstance != nil {
+		adminInstance.sealed.Store(false)
+		adminInstance.configSession.Store(0)
+	}
+
 	adminInstance = nil
 	adminCreated = false
 

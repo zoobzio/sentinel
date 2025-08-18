@@ -78,8 +78,12 @@ func TestConventionDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.SetPolicies([]Policy{policy})
-	admin.Seal()
+	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+		t.Fatalf("failed to set policies: %v", err)
+	}
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	// Test type with conventions
 	t.Run("DetectsImplementedConventions", func(t *testing.T) {
@@ -153,8 +157,12 @@ func TestConventionAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.SetPolicies([]Policy{policy})
-	admin.Seal()
+	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+		t.Fatalf("failed to set policies: %v", err)
+	}
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	t.Run("HasConvention", func(t *testing.T) {
 		// ConventionUser has defaults
@@ -220,8 +228,12 @@ func TestSpecialTokens(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.SetPolicies([]Policy{policy})
-	admin.Seal()
+	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+		t.Fatalf("failed to set policies: %v", err)
+	}
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	// Type that returns itself
 	type SelfReturner struct {

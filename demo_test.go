@@ -12,7 +12,9 @@ func TestPolicySystemDemo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.Seal()
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	// Define test types
 	type UserRequest struct {

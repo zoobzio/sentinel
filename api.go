@@ -86,10 +86,25 @@ type Config struct {
 }
 
 // Inspect returns comprehensive metadata for a type.
+// If configuration has not been sealed yet, it will be auto-sealed on first inspection.
 func Inspect[T any]() ModelMetadata {
-	// Ensure configuration is sealed before allowing inspection
+	// Auto-seal if not sealed yet - allows immediate use without admin
 	if !instance.configSealed.Load() {
-		panic("sentinel: cannot inspect types before configuration is sealed - call admin.Seal() first")
+		// Try to auto-seal
+		if adminInstance != nil && !adminInstance.sealed.Load() {
+			// Admin exists but not sealed - auto-seal it
+			if err := adminInstance.Seal(); err != nil {
+				panic(fmt.Sprintf("sentinel: auto-seal failed: %v", err))
+			}
+		} else {
+			// No admin created - just mark as sealed to allow inspection
+			instance.configSealed.Store(true)
+			Logger.Admin.Emit("ADMIN_ACTION", "Auto-sealed for inspection", AdminEvent{
+				Timestamp:   time.Now(),
+				Action:      "auto_sealed",
+				PolicyCount: len(instance.policies),
+			})
+		}
 	}
 
 	var zero T
@@ -172,6 +187,7 @@ func Inspect[T any]() ModelMetadata {
 }
 
 // Tag registers a struct tag to be extracted during metadata processing.
+// This can be called regardless of seal status.
 func Tag(tagName string) {
 	instance.tagMutex.Lock()
 	defer instance.tagMutex.Unlock()
@@ -224,6 +240,12 @@ func GetCachedMetadata(typeName string) (ModelMetadata, bool) {
 
 // Policy modification functions have been moved to Admin.
 // Use sentinel.NewAdmin() to get write access to policies.
+
+// IsConfigSealed returns true if the configuration has been sealed.
+// After sealing (manual or auto), type inspection is allowed.
+func IsConfigSealed() bool {
+	return instance.configSealed.Load()
+}
 
 // GetPolicies returns a copy of the currently configured policies.
 // This is read-only access. Use Admin to modify policies.

@@ -37,7 +37,9 @@ func TestLogger(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.Seal()
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		// User registers a hook to capture extraction events
 		var capturedEvent ExtractionEvent
@@ -125,7 +127,9 @@ func TestLogger(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.Seal()
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		var cacheEvents []CacheEvent
 
@@ -205,8 +209,12 @@ func TestLogger(t *testing.T) {
 			Name:     "AdminTestPolicy",
 			Policies: []TypePolicy{{Match: "*", Classification: "public"}},
 		}
-		admin.AddPolicy(policy)
-		admin.Seal()
+		if err := admin.AddPolicy(policy); err != nil {
+			t.Fatalf("failed to add policy: %v", err)
+		}
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		// Should have captured: policy_added, sealed
 		if len(adminEvents) < 2 {

@@ -58,8 +58,12 @@ func TestClassificationSystem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	admin.SetPolicies([]Policy{policy})
-	admin.Seal()
+	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+		t.Fatalf("failed to set policies: %v", err)
+	}
+	if err := admin.Seal(); err != nil {
+		panic(err)
+	}
 
 	t.Run("BasicClassification", func(t *testing.T) {
 		// Test public data
@@ -111,8 +115,12 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.SetPolicies([]Policy{}) // Clear policies
-		admin.Seal()
+		if err := admin.SetPolicies([]Policy{}); err != nil {
+			t.Fatalf("failed to set policies: %v", err)
+		} // Clear policies
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 		if HasClassification[PublicData]() {
 			t.Error("Expected PublicData to have no classification when no policies are set")
 		}
@@ -123,8 +131,12 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.SetPolicies([]Policy{policy})
-		admin.Seal()
+		if err := admin.SetPolicies([]Policy{policy}); err != nil {
+			t.Fatalf("failed to set policies: %v", err)
+		}
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 	})
 
 	t.Run("LastMatchWins", func(t *testing.T) {
@@ -152,8 +164,12 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.SetPolicies([]Policy{overridePolicy})
-		admin.Seal()
+		if err := admin.SetPolicies([]Policy{overridePolicy}); err != nil {
+			t.Fatalf("failed to set policies: %v", err)
+		}
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		classification := GetClassification[UserProfile]()
 		if classification != "highly-confidential" {
@@ -168,8 +184,12 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.SetPolicies([]Policy{})
-		admin.Seal()
+		if err := admin.SetPolicies([]Policy{}); err != nil {
+			t.Fatalf("failed to set policies: %v", err)
+		}
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		classification := GetClassification[UserProfile]()
 		if classification != "" {
@@ -184,8 +204,12 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.SetPolicies([]Policy{policy})
-		admin.Seal()
+		if err := admin.SetPolicies([]Policy{policy}); err != nil {
+			t.Fatalf("failed to set policies: %v", err)
+		}
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		metadata := Inspect[CreditCardInfo]()
 		if metadata.Classification != "pci-dss" {
@@ -237,8 +261,12 @@ func TestClassificationPrecedence(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		admin.SetPolicies(policies)
-		admin.Seal()
+		if err := admin.SetPolicies(policies); err != nil {
+			t.Fatalf("failed to set policies: %v", err)
+		}
+		if err := admin.Seal(); err != nil {
+			panic(err)
+		}
 
 		type UserData struct {
 			Info string
