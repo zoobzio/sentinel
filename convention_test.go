@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"errors"
 	"testing"
 )
@@ -78,16 +79,16 @@ func TestConventionDetection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+	if err := admin.SetPolicies(context.Background(), []Policy{policy}); err != nil {
 		t.Fatalf("failed to set policies: %v", err)
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err)
 	}
 
 	// Test type with conventions
 	t.Run("DetectsImplementedConventions", func(t *testing.T) {
-		metadata := Inspect[ConventionUser]()
+		metadata := Inspect[ConventionUser](context.Background())
 
 		// Should detect defaults and validator
 		if len(metadata.Conventions) != 3 {
@@ -113,7 +114,7 @@ func TestConventionDetection(t *testing.T) {
 
 	// Test type with no conventions
 	t.Run("EmptyConventionsForPlainStruct", func(t *testing.T) {
-		metadata := Inspect[PlainStruct]()
+		metadata := Inspect[PlainStruct](context.Background())
 
 		if len(metadata.Conventions) != 0 {
 			t.Errorf("Expected no conventions, got %d: %v", len(metadata.Conventions), metadata.Conventions)
@@ -122,7 +123,7 @@ func TestConventionDetection(t *testing.T) {
 
 	// Test type with wrong signature
 	t.Run("RejectsWrongSignature", func(t *testing.T) {
-		metadata := Inspect[BadDefaults]()
+		metadata := Inspect[BadDefaults](context.Background())
 
 		// Should not detect defaults because signature doesn't match
 		for _, conv := range metadata.Conventions {
@@ -157,27 +158,27 @@ func TestConventionAPI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+	if err := admin.SetPolicies(context.Background(), []Policy{policy}); err != nil {
 		t.Fatalf("failed to set policies: %v", err)
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err)
 	}
 
 	t.Run("HasConvention", func(t *testing.T) {
 		// ConventionUser has defaults
-		if !HasConvention[ConventionUser]("defaults") {
+		if !HasConvention[ConventionUser](context.Background(), "defaults") {
 			t.Error("Expected ConventionUser to have defaults convention")
 		}
 
 		// PlainStruct does not have defaults
-		if HasConvention[PlainStruct]("defaults") {
+		if HasConvention[PlainStruct](context.Background(), "defaults") {
 			t.Error("Expected PlainStruct to not have defaults convention")
 		}
 	})
 
 	t.Run("GetConventions", func(t *testing.T) {
-		conventions := GetConventions[ConventionUser]()
+		conventions := GetConventions[ConventionUser](context.Background())
 
 		if len(conventions) == 0 {
 			t.Error("Expected ConventionUser to have conventions")
@@ -228,10 +229,10 @@ func TestSpecialTokens(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+	if err := admin.SetPolicies(context.Background(), []Policy{policy}); err != nil {
 		t.Fatalf("failed to set policies: %v", err)
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err)
 	}
 
@@ -250,7 +251,7 @@ func TestSpecialTokens(t *testing.T) {
 	t.Run("ValidatesSelfToken", func(t *testing.T) {
 		// The @self validation is tested implicitly through ConventionUser.Defaults()
 		// which returns ConventionUser (matching @self)
-		metadata := Inspect[ConventionUser]()
+		metadata := Inspect[ConventionUser](context.Background())
 
 		// If defaults was detected, @self validation worked
 		hasDefaults := false

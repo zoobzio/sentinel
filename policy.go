@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -96,7 +97,7 @@ func matches(pattern, name string) bool {
 }
 
 // applyPolicies applies all configured policies to the extraction context.
-func (s *Sentinel) applyPolicies(ctx *ExtractionContext) PolicyResult {
+func (s *Sentinel) applyPolicies(_ context.Context, ec *ExtractionContext) PolicyResult {
 	result := PolicyResult{
 		Applied:        []string{},
 		Warnings:       []string{},
@@ -110,9 +111,9 @@ func (s *Sentinel) applyPolicies(ctx *ExtractionContext) PolicyResult {
 	for _, policy := range s.policies {
 		// Apply each type policy
 		for _, typePolicy := range policy.Policies {
-			if matches(typePolicy.Match, ctx.Metadata.TypeName) {
+			if matches(typePolicy.Match, ec.Metadata.TypeName) {
 				// This type matches - apply the policy
-				s.applyTypePolicy(ctx, &typePolicy, &result)
+				s.applyTypePolicy(ec, &typePolicy, &result)
 				result.Applied = append(result.Applied, fmt.Sprintf("%s.%s", policy.Name, typePolicy.Match))
 			}
 		}
@@ -122,20 +123,20 @@ func (s *Sentinel) applyPolicies(ctx *ExtractionContext) PolicyResult {
 }
 
 // applyTypePolicy applies a single type policy to the extraction context.
-func (s *Sentinel) applyTypePolicy(ctx *ExtractionContext, policy *TypePolicy, result *PolicyResult) {
+func (s *Sentinel) applyTypePolicy(ec *ExtractionContext, policy *TypePolicy, result *PolicyResult) {
 	// Apply classification if specified
 	if policy.Classification != "" {
-		ctx.Metadata.Classification = policy.Classification
+		ec.Metadata.Classification = policy.Classification
 	}
 
 	// Apply codecs if specified
 	if len(policy.Codecs) > 0 {
 		for _, codec := range policy.Codecs {
 			if IsValidCodec(codec) {
-				ctx.Metadata.Codecs = append(ctx.Metadata.Codecs, codec)
+				ec.Metadata.Codecs = append(ec.Metadata.Codecs, codec)
 			} else {
 				result.Warnings = append(result.Warnings,
-					fmt.Sprintf("Invalid codec '%s' for type %s", codec, ctx.Metadata.TypeName))
+					fmt.Sprintf("Invalid codec '%s' for type %s", codec, ec.Metadata.TypeName))
 			}
 		}
 	}
@@ -143,13 +144,13 @@ func (s *Sentinel) applyTypePolicy(ctx *ExtractionContext, policy *TypePolicy, r
 	// Check required fields
 	for fieldName, fieldType := range policy.Ensure {
 		found := false
-		for _, field := range ctx.Metadata.Fields {
+		for _, field := range ec.Metadata.Fields {
 			if field.Name == fieldName {
 				found = true
 				if field.Type != fieldType {
 					result.Errors = append(result.Errors,
 						fmt.Sprintf("Type %s: required field %s must be type %s, got %s",
-							ctx.Metadata.TypeName, fieldName, fieldType, field.Type))
+							ec.Metadata.TypeName, fieldName, fieldType, field.Type))
 				}
 				break
 			}
@@ -157,24 +158,24 @@ func (s *Sentinel) applyTypePolicy(ctx *ExtractionContext, policy *TypePolicy, r
 		if !found {
 			result.Errors = append(result.Errors,
 				fmt.Sprintf("Type %s: missing required field %s (%s)",
-					ctx.Metadata.TypeName, fieldName, fieldType))
+					ec.Metadata.TypeName, fieldName, fieldType))
 		}
 	}
 
 	// Apply field policies (legacy)
 	for _, fieldPolicy := range policy.Fields {
-		s.applyFieldPolicies(ctx, &fieldPolicy, result)
+		s.applyFieldPolicies(ec, &fieldPolicy, result)
 	}
 
 	// Apply rule-based policies (new)
 	if len(policy.Rules) > 0 {
-		s.applyRules(ctx, policy.Rules, result)
+		s.applyRules(ec, policy.Rules, result)
 	}
 }
 
 // applyFieldPolicies applies field-level policies to matching fields.
-func (*Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolicy, result *PolicyResult) {
-	for _, field := range ctx.Metadata.Fields {
+func (*Sentinel) applyFieldPolicies(ec *ExtractionContext, policy *FieldPolicy, result *PolicyResult) {
+	for _, field := range ec.Metadata.Fields {
 		if !matches(policy.Match, field.Name) {
 			continue
 		}
@@ -183,7 +184,7 @@ func (*Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolicy,
 		if policy.Type != "" && field.Type != policy.Type {
 			result.Errors = append(result.Errors,
 				fmt.Sprintf("Field %s.%s: must be type %s, got %s",
-					ctx.Metadata.TypeName, field.Name, policy.Type, field.Type))
+					ec.Metadata.TypeName, field.Name, policy.Type, field.Type))
 			continue
 		}
 
@@ -193,11 +194,11 @@ func (*Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolicy,
 			if !exists {
 				result.Errors = append(result.Errors,
 					fmt.Sprintf("Field %s.%s: missing required tag '%s'",
-						ctx.Metadata.TypeName, field.Name, tag))
+						ec.Metadata.TypeName, field.Name, tag))
 			} else if value != "{any}" && existing != value {
 				result.Errors = append(result.Errors,
 					fmt.Sprintf("Field %s.%s: tag '%s' must be '%s', got '%s'",
-						ctx.Metadata.TypeName, field.Name, tag, value, existing))
+						ec.Metadata.TypeName, field.Name, tag, value, existing))
 			}
 		}
 
@@ -205,13 +206,13 @@ func (*Sentinel) applyFieldPolicies(ctx *ExtractionContext, policy *FieldPolicy,
 }
 
 // applyRules applies rule-based policies to the extraction context.
-func (*Sentinel) applyRules(ctx *ExtractionContext, rules []Rule, result *PolicyResult) {
+func (*Sentinel) applyRules(ec *ExtractionContext, rules []Rule, result *PolicyResult) {
 	evalCtx := &EvaluationContext{
-		Type: &ctx.Metadata,
+		Type: &ec.Metadata,
 	}
 
 	// Apply rules to each field
-	for _, field := range ctx.Metadata.Fields {
+	for _, field := range ec.Metadata.Fields {
 		evalCtx.Field = &field
 
 		for _, rule := range rules {
@@ -223,11 +224,11 @@ func (*Sentinel) applyRules(ctx *ExtractionContext, rules []Rule, result *Policy
 						if !exists {
 							result.Errors = append(result.Errors,
 								fmt.Sprintf("Field %s.%s: missing required tag '%s'",
-									ctx.Metadata.TypeName, field.Name, tag))
+									ec.Metadata.TypeName, field.Name, tag))
 						} else if expected != "{any}" && actual != expected {
 							result.Errors = append(result.Errors,
 								fmt.Sprintf("Field %s.%s: tag '%s' must be '%s', got '%s'",
-									ctx.Metadata.TypeName, field.Name, tag, expected, actual))
+									ec.Metadata.TypeName, field.Name, tag, expected, actual))
 						}
 					}
 				}
@@ -237,7 +238,7 @@ func (*Sentinel) applyRules(ctx *ExtractionContext, rules []Rule, result *Policy
 					if _, exists := field.Tags[tag]; exists {
 						result.Errors = append(result.Errors,
 							fmt.Sprintf("Field %s.%s: forbidden tag '%s'",
-								ctx.Metadata.TypeName, field.Name, tag))
+								ec.Metadata.TypeName, field.Name, tag))
 					}
 				}
 			}

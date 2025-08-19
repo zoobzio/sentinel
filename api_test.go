@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -34,7 +35,7 @@ func setupSentinelForTest() {
 	if err != nil {
 		panic(err) // In tests, panic is acceptable
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err) // In tests, panic is acceptable
 	}
 }
@@ -44,13 +45,13 @@ func TestInspect(t *testing.T) {
 	setupSentinelForTest()
 
 	// Register tags for tests
-	Tag("validate")
-	Tag("encrypt")
-	Tag("db")
-	Tag("desc")
+	Tag(context.Background(), "validate")
+	Tag(context.Background(), "encrypt")
+	Tag(context.Background(), "db")
+	Tag(context.Background(), "desc")
 
 	t.Run("basic struct inspection", func(t *testing.T) {
-		metadata := Inspect[SimpleStruct]()
+		metadata := Inspect[SimpleStruct](context.Background())
 
 		if metadata.TypeName != "SimpleStruct" {
 			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
@@ -70,7 +71,7 @@ func TestInspect(t *testing.T) {
 	})
 
 	t.Run("complex struct with multiple tags", func(t *testing.T) {
-		metadata := Inspect[TestUser]()
+		metadata := Inspect[TestUser](context.Background())
 
 		if metadata.TypeName != "TestUser" {
 			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
@@ -109,10 +110,10 @@ func TestInspect(t *testing.T) {
 
 	t.Run("caching behavior", func(t *testing.T) {
 		// First call should cache
-		metadata1 := Inspect[TestUser]()
+		metadata1 := Inspect[TestUser](context.Background())
 
 		// Second call should return cached value
-		metadata2 := Inspect[TestUser]()
+		metadata2 := Inspect[TestUser](context.Background())
 
 		// Verify caching worked by comparing field count (should be identical)
 		if len(metadata2.Fields) != len(metadata1.Fields) {
@@ -127,8 +128,8 @@ func TestInspect(t *testing.T) {
 
 	t.Run("pointer type normalization", func(t *testing.T) {
 		// Both should return same metadata
-		valueMeta := Inspect[TestUser]()
-		pointerMeta := Inspect[*TestUser]()
+		valueMeta := Inspect[TestUser](context.Background())
+		pointerMeta := Inspect[*TestUser](context.Background())
 
 		if valueMeta.TypeName != pointerMeta.TypeName {
 			t.Errorf("expected same TypeName, got %s vs %s", valueMeta.TypeName, pointerMeta.TypeName)
@@ -146,7 +147,7 @@ func TestInspect(t *testing.T) {
 			}
 		}()
 
-		Inspect[string]() // Should panic
+		Inspect[string](context.Background()) // Should panic
 	})
 
 	t.Run("panic on slice types", func(t *testing.T) {
@@ -156,21 +157,21 @@ func TestInspect(t *testing.T) {
 			}
 		}()
 
-		Inspect[[]TestUser]() // Should panic
+		Inspect[[]TestUser](context.Background()) // Should panic
 	})
 }
 
 func TestTag(t *testing.T) {
 	t.Run("register custom tag", func(t *testing.T) {
 		// Register a custom tag
-		Tag("custom")
+		Tag(context.Background(), "custom")
 
 		// Verify it was registered by using it
 		type CustomStruct struct {
 			Field string `custom:"value"`
 		}
 
-		metadata := Inspect[CustomStruct]()
+		metadata := Inspect[CustomStruct](context.Background())
 		if metadata.Fields[0].Tags["custom"] != "value" {
 			t.Error("expected 'custom' tag to be extracted")
 		}
@@ -178,14 +179,14 @@ func TestTag(t *testing.T) {
 
 	t.Run("custom tag extraction", func(t *testing.T) {
 		// Register custom tag
-		Tag("scope")
+		Tag(context.Background(), "scope")
 
 		type ScopedStruct struct {
 			AdminField string `json:"admin_field" scope:"admin"`
 			UserField  string `json:"user_field" scope:"user"`
 		}
 
-		metadata := Inspect[ScopedStruct]()
+		metadata := Inspect[ScopedStruct](context.Background())
 
 		// Check that scope tags were extracted
 		for _, field := range metadata.Fields {
@@ -208,9 +209,9 @@ func TestTag(t *testing.T) {
 func TestBrowse(t *testing.T) {
 	t.Run("browse registered types", func(t *testing.T) {
 		// Register some types
-		Inspect[SimpleStruct]()
-		Inspect[TestUser]()
-		Inspect[NestedStruct]()
+		Inspect[SimpleStruct](context.Background())
+		Inspect[TestUser](context.Background())
+		Inspect[NestedStruct](context.Background())
 
 		types := Browse()
 
@@ -252,7 +253,7 @@ func TestEdgeCases(t *testing.T) {
 	t.Run("struct with no fields", func(t *testing.T) {
 		type EmptyStruct struct{}
 
-		metadata := Inspect[EmptyStruct]()
+		metadata := Inspect[EmptyStruct](context.Background())
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 fields, got %d", len(metadata.Fields))
@@ -265,7 +266,7 @@ func TestEdgeCases(t *testing.T) {
 			private2 int    //nolint:unused // intentionally unused for testing
 		}
 
-		metadata := Inspect[PrivateStruct]()
+		metadata := Inspect[PrivateStruct](context.Background())
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 exported fields, got %d", len(metadata.Fields))
@@ -273,7 +274,7 @@ func TestEdgeCases(t *testing.T) {
 	})
 
 	t.Run("nil pointer type", func(t *testing.T) {
-		metadata := Inspect[*TestUser]()
+		metadata := Inspect[*TestUser](context.Background())
 
 		// Should still work and return metadata
 		if metadata.TypeName != "TestUser" {

@@ -53,8 +53,8 @@ func (s *Sentinel) basicReflection(_ context.Context, ec *ExtractionContext) (*E
 }
 
 // policyProcessor applies all configured policies to the metadata.
-func (s *Sentinel) policyProcessor(_ context.Context, ec *ExtractionContext) (*ExtractionContext, error) {
-	result := s.applyPolicies(ec)
+func (s *Sentinel) policyProcessor(ctx context.Context, ec *ExtractionContext) (*ExtractionContext, error) {
+	result := s.applyPolicies(ctx, ec)
 
 	// Emit policy events if policies were applied
 	if len(result.Applied) > 0 {
@@ -62,7 +62,7 @@ func (s *Sentinel) policyProcessor(_ context.Context, ec *ExtractionContext) (*E
 			// Get metrics for this specific policy if available
 			metrics := result.PolicyMetrics[policyName]
 
-			Logger.Policy.Emit("POLICY_APPLIED", "Policy applied", PolicyEvent{
+			Logger.Policy.Emit(ctx, "POLICY_APPLIED", "Policy applied", PolicyEvent{
 				TypeName:       ec.Metadata.TypeName,
 				PolicyName:     policyName,
 				FieldsModified: metrics.FieldsModified,
@@ -77,7 +77,7 @@ func (s *Sentinel) policyProcessor(_ context.Context, ec *ExtractionContext) (*E
 
 	// If there are errors, emit violation events and fail the extraction
 	if len(result.Errors) > 0 {
-		Logger.Validation.Emit("POLICY_VIOLATION", "Policy validation failed", ValidationEvent{
+		Logger.Validation.Emit(ctx, "POLICY_VIOLATION", "Policy validation failed", ValidationEvent{
 			Timestamp:  time.Now(),
 			TypeName:   ec.Metadata.TypeName,
 			PolicyName: "policy-enforcement",

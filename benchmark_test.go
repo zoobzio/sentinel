@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"testing"
 	"time"
 )
@@ -37,7 +38,7 @@ func init() {
 	if err != nil {
 		panic("failed to create admin for benchmarks: " + err.Error())
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err)
 	}
 }
@@ -45,31 +46,31 @@ func init() {
 func BenchmarkInspectSimple(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkSimpleStruct]()
+		_ = Inspect[BenchmarkSimpleStruct](context.Background())
 	}
 }
 
 func BenchmarkInspectComplex(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = Inspect[BenchmarkStruct](context.Background())
 	}
 }
 
 func BenchmarkInspectCached(b *testing.B) {
 	// Pre-populate cache
-	_ = Inspect[BenchmarkStruct]()
+	_ = Inspect[BenchmarkStruct](context.Background())
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = Inspect[BenchmarkStruct](context.Background())
 	}
 }
 
 func BenchmarkTagRegistration(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Tag("custom")
+		Tag(context.Background(), "custom")
 	}
 }
 
@@ -78,7 +79,7 @@ func BenchmarkPolicyApplication(b *testing.B) {
 	// This benchmark is now just measuring base performance
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = Inspect[BenchmarkStruct](context.Background())
 	}
 }
 
@@ -86,7 +87,7 @@ func BenchmarkConcurrentInspect(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_ = Inspect[BenchmarkStruct]()
+			_ = Inspect[BenchmarkStruct](context.Background())
 		}
 	})
 }
@@ -96,6 +97,6 @@ func BenchmarkInspectMemory(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = Inspect[BenchmarkStruct](context.Background())
 	}
 }

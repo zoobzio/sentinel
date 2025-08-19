@@ -37,7 +37,7 @@ func TestLogger(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 
@@ -61,7 +61,7 @@ func TestLogger(t *testing.T) {
 		}
 
 		// This should trigger METADATA_EXTRACTED
-		Inspect[TestStruct]()
+		Inspect[TestStruct](context.Background())
 
 		// Give sink time to process
 		// Note: In real usage, sinks process asynchronously
@@ -127,7 +127,7 @@ func TestLogger(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 
@@ -148,10 +148,10 @@ func TestLogger(t *testing.T) {
 		}
 
 		// First call: cache miss + cache set
-		Inspect[CacheTestStruct]()
+		Inspect[CacheTestStruct](context.Background())
 
 		// Second call: cache hit
-		Inspect[CacheTestStruct]()
+		Inspect[CacheTestStruct](context.Background())
 
 		// Should have captured cache events
 		if len(cacheEvents) < 2 {
@@ -209,10 +209,10 @@ func TestLogger(t *testing.T) {
 			Name:     "AdminTestPolicy",
 			Policies: []TypePolicy{{Match: "*", Classification: "public"}},
 		}
-		if err := admin.AddPolicy(policy); err != nil {
+		if err := admin.AddPolicy(context.Background(), policy); err != nil {
 			t.Fatalf("failed to add policy: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 

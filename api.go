@@ -87,19 +87,19 @@ type Config struct {
 
 // Inspect returns comprehensive metadata for a type.
 // If configuration has not been sealed yet, it will be auto-sealed on first inspection.
-func Inspect[T any]() ModelMetadata {
+func Inspect[T any](ctx context.Context) ModelMetadata {
 	// Auto-seal if not sealed yet - allows immediate use without admin
 	if !instance.configSealed.Load() {
 		// Try to auto-seal
 		if adminInstance != nil && !adminInstance.sealed.Load() {
 			// Admin exists but not sealed - auto-seal it
-			if err := adminInstance.Seal(); err != nil {
+			if err := adminInstance.Seal(ctx); err != nil {
 				panic(fmt.Sprintf("sentinel: auto-seal failed: %v", err))
 			}
 		} else {
 			// No admin created - just mark as sealed to allow inspection
 			instance.configSealed.Store(true)
-			Logger.Admin.Emit("ADMIN_ACTION", "Auto-sealed for inspection", AdminEvent{
+			Logger.Admin.Emit(ctx, "ADMIN_ACTION", "Auto-sealed for inspection", AdminEvent{
 				Timestamp:   time.Now(),
 				Action:      "auto_sealed",
 				PolicyCount: len(instance.policies),
@@ -123,7 +123,7 @@ func Inspect[T any]() ModelMetadata {
 
 	// Check cache first
 	if cached, exists := instance.cache.Get(typeName); exists {
-		Logger.Cache.Emit("CACHE_HIT", "Cache hit for type", CacheEvent{
+		Logger.Cache.Emit(ctx, "CACHE_HIT", "Cache hit for type", CacheEvent{
 			Timestamp: time.Now(),
 			TypeName:  typeName,
 			Operation: "hit",
@@ -134,7 +134,7 @@ func Inspect[T any]() ModelMetadata {
 	}
 
 	// Log cache miss
-	Logger.Cache.Emit("CACHE_MISS", "Cache miss for type", CacheEvent{
+	Logger.Cache.Emit(ctx, "CACHE_MISS", "Cache miss for type", CacheEvent{
 		Timestamp: time.Now(),
 		TypeName:  typeName,
 		Operation: "miss",
@@ -150,7 +150,7 @@ func Inspect[T any]() ModelMetadata {
 
 	// Run through extraction pipeline
 	start := time.Now()
-	result, err := instance.pipeline.Process(context.Background(), ec)
+	result, err := instance.pipeline.Process(ctx, ec)
 	if err != nil {
 		// In strict mode, return empty metadata with error info
 		// In non-strict mode, we could potentially return partial metadata
@@ -162,7 +162,7 @@ func Inspect[T any]() ModelMetadata {
 	metadata := result.Metadata
 
 	// Emit extraction event
-	Logger.Extraction.Emit("METADATA_EXTRACTED", "Metadata extracted", ExtractionEvent{
+	Logger.Extraction.Emit(ctx, "METADATA_EXTRACTED", "Metadata extracted", ExtractionEvent{
 		TypeName:   typeName,
 		FieldCount: len(metadata.Fields),
 		Duration:   time.Since(start),
@@ -175,7 +175,7 @@ func Inspect[T any]() ModelMetadata {
 	instance.cache.Set(typeName, metadata)
 
 	// Emit cache set event
-	Logger.Cache.Emit("CACHE_SET", "Metadata cached", CacheEvent{
+	Logger.Cache.Emit(ctx, "CACHE_SET", "Metadata cached", CacheEvent{
 		Timestamp: time.Now(),
 		TypeName:  typeName,
 		Operation: "set",
@@ -188,7 +188,7 @@ func Inspect[T any]() ModelMetadata {
 
 // Tag registers a struct tag to be extracted during metadata processing.
 // This can be called regardless of seal status.
-func Tag(tagName string) {
+func Tag(ctx context.Context, tagName string) {
 	instance.tagMutex.Lock()
 	defer instance.tagMutex.Unlock()
 
@@ -208,7 +208,7 @@ func Tag(tagName string) {
 		}
 	}
 
-	Logger.Tag.Emit("TAG_REGISTERED", "Tag registered", TagEvent{
+	Logger.Tag.Emit(ctx, "TAG_REGISTERED", "Tag registered", TagEvent{
 		Timestamp:     time.Now(),
 		TagName:       tagName,
 		UsageCount:    usageCount,
@@ -257,8 +257,8 @@ func GetPolicies() []Policy {
 }
 
 // HasConvention checks if a type implements a specific convention.
-func HasConvention[T any](name string) bool {
-	metadata := Inspect[T]()
+func HasConvention[T any](ctx context.Context, name string) bool {
+	metadata := Inspect[T](ctx)
 	for _, conv := range metadata.Conventions {
 		if conv == name {
 			return true
@@ -268,32 +268,32 @@ func HasConvention[T any](name string) bool {
 }
 
 // GetConventions returns all conventions implemented by a type.
-func GetConventions[T any]() []string {
-	metadata := Inspect[T]()
+func GetConventions[T any](ctx context.Context) []string {
+	metadata := Inspect[T](ctx)
 	return metadata.Conventions
 }
 
 // GetClassification returns the classification level for a type.
 // Returns empty string if no classification is set.
-func GetClassification[T any]() string {
-	metadata := Inspect[T]()
+func GetClassification[T any](ctx context.Context) string {
+	metadata := Inspect[T](ctx)
 	return metadata.Classification
 }
 
 // HasClassification checks if a type has any classification set.
-func HasClassification[T any]() bool {
-	return GetClassification[T]() != ""
+func HasClassification[T any](ctx context.Context) bool {
+	return GetClassification[T](ctx) != ""
 }
 
 // GetRelationships returns all relationships from a type to other types.
-func GetRelationships[T any]() []TypeRelationship {
-	metadata := Inspect[T]()
+func GetRelationships[T any](ctx context.Context) []TypeRelationship {
+	metadata := Inspect[T](ctx)
 	return metadata.Relationships
 }
 
 // GetReferencedBy returns all types that reference the given type.
 // This performs a reverse lookup across all cached metadata.
-func GetReferencedBy[T any]() []TypeRelationship {
+func GetReferencedBy[T any](_ context.Context) []TypeRelationship {
 	var zero T
 	t := reflect.TypeOf(zero)
 	targetName := getTypeName(t)

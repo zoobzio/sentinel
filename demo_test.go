@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"fmt"
 	"testing"
 )
@@ -12,7 +13,7 @@ func TestPolicySystemDemo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err)
 	}
 
@@ -26,7 +27,7 @@ func TestPolicySystemDemo(t *testing.T) {
 
 	// Extract metadata using global singleton
 	// Note: With singleton pattern, policies would need to be configured differently
-	metadata := Inspect[UserRequest]()
+	metadata := Inspect[UserRequest](context.Background())
 
 	fmt.Printf("\nGenerated metadata for %s:\n", metadata.TypeName)
 	fmt.Printf("Package: %s\n", metadata.PackageName)
@@ -93,7 +94,7 @@ policies:
 
 	// Extract metadata using global singleton
 	// Note: YAML policy would need to be applied differently with singleton
-	metadata := Inspect[LoginRequest]()
+	metadata := Inspect[LoginRequest](context.Background())
 
 	fmt.Printf("\nYAML Policy Demo - %s:\n", metadata.TypeName)
 	for _, field := range metadata.Fields {

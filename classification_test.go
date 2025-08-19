@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"testing"
 )
 
@@ -58,34 +59,34 @@ func TestClassificationSystem(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create admin: %v", err)
 	}
-	if err := admin.SetPolicies([]Policy{policy}); err != nil {
+	if err := admin.SetPolicies(context.Background(), []Policy{policy}); err != nil {
 		t.Fatalf("failed to set policies: %v", err)
 	}
-	if err := admin.Seal(); err != nil {
+	if err := admin.Seal(context.Background()); err != nil {
 		panic(err)
 	}
 
 	t.Run("BasicClassification", func(t *testing.T) {
 		// Test public data
-		publicClass := GetClassification[PublicData]()
+		publicClass := GetClassification[PublicData](context.Background())
 		if publicClass != "public" {
 			t.Errorf("Expected PublicData to have 'public' classification, got '%s'", publicClass)
 		}
 
 		// Test PII data
-		userClass := GetClassification[UserProfile]()
+		userClass := GetClassification[UserProfile](context.Background())
 		if userClass != "pii" {
 			t.Errorf("Expected UserProfile to have 'pii' classification, got '%s'", userClass)
 		}
 
 		// Test PCI-DSS data
-		ccClass := GetClassification[CreditCardInfo]()
+		ccClass := GetClassification[CreditCardInfo](context.Background())
 		if ccClass != "pci-dss" {
 			t.Errorf("Expected CreditCardInfo to have 'pci-dss' classification, got '%s'", ccClass)
 		}
 
 		// Test PHI data
-		medClass := GetClassification[MedicalRecord]()
+		medClass := GetClassification[MedicalRecord](context.Background())
 		if medClass != "phi" {
 			t.Errorf("Expected MedicalRecord to have 'phi' classification, got '%s'", medClass)
 		}
@@ -97,7 +98,7 @@ func TestClassificationSystem(t *testing.T) {
 			Value string
 		}
 
-		classification := GetClassification[RandomData]()
+		classification := GetClassification[RandomData](context.Background())
 		if classification != "internal" {
 			t.Errorf("Expected default classification 'internal', got '%s'", classification)
 		}
@@ -105,7 +106,7 @@ func TestClassificationSystem(t *testing.T) {
 
 	t.Run("HasClassificationAPI", func(t *testing.T) {
 		// Test HasClassification
-		if !HasClassification[UserProfile]() {
+		if !HasClassification[UserProfile](context.Background()) {
 			t.Error("Expected UserProfile to have a classification")
 		}
 
@@ -115,13 +116,13 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.SetPolicies([]Policy{}); err != nil {
+		if err := admin.SetPolicies(context.Background(), []Policy{}); err != nil {
 			t.Fatalf("failed to set policies: %v", err)
 		} // Clear policies
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
-		if HasClassification[PublicData]() {
+		if HasClassification[PublicData](context.Background()) {
 			t.Error("Expected PublicData to have no classification when no policies are set")
 		}
 
@@ -131,10 +132,10 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.SetPolicies([]Policy{policy}); err != nil {
+		if err := admin.SetPolicies(context.Background(), []Policy{policy}); err != nil {
 			t.Fatalf("failed to set policies: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 	})
@@ -164,14 +165,14 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.SetPolicies([]Policy{overridePolicy}); err != nil {
+		if err := admin.SetPolicies(context.Background(), []Policy{overridePolicy}); err != nil {
 			t.Fatalf("failed to set policies: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 
-		classification := GetClassification[UserProfile]()
+		classification := GetClassification[UserProfile](context.Background())
 		if classification != "highly-confidential" {
 			t.Errorf("Expected last match 'highly-confidential', got '%s'", classification)
 		}
@@ -184,14 +185,14 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.SetPolicies([]Policy{}); err != nil {
+		if err := admin.SetPolicies(context.Background(), []Policy{}); err != nil {
 			t.Fatalf("failed to set policies: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 
-		classification := GetClassification[UserProfile]()
+		classification := GetClassification[UserProfile](context.Background())
 		if classification != "" {
 			t.Errorf("Expected empty classification, got '%s'", classification)
 		}
@@ -204,14 +205,14 @@ func TestClassificationSystem(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.SetPolicies([]Policy{policy}); err != nil {
+		if err := admin.SetPolicies(context.Background(), []Policy{policy}); err != nil {
 			t.Fatalf("failed to set policies: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 
-		metadata := Inspect[CreditCardInfo]()
+		metadata := Inspect[CreditCardInfo](context.Background())
 		if metadata.Classification != "pci-dss" {
 			t.Errorf("Expected classification in metadata to be 'pci-dss', got '%s'", metadata.Classification)
 		}
@@ -261,10 +262,10 @@ func TestClassificationPrecedence(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create admin: %v", err)
 		}
-		if err := admin.SetPolicies(policies); err != nil {
+		if err := admin.SetPolicies(context.Background(), policies); err != nil {
 			t.Fatalf("failed to set policies: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			panic(err)
 		}
 
@@ -274,7 +275,7 @@ func TestClassificationPrecedence(t *testing.T) {
 
 		// Should match in order: *, *Data*, *User*, UserData
 		// Last match (UserData) should win
-		classification := GetClassification[UserData]()
+		classification := GetClassification[UserData](context.Background())
 		if classification != "specific-user-data" {
 			t.Errorf("Expected 'specific-user-data' from most specific match, got '%s'", classification)
 		}

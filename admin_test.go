@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"reflect"
 	"testing"
 )
@@ -19,7 +20,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Seal it
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to seal: %v", err)
 		}
 
@@ -28,7 +29,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Unseal it
-		if err := admin.Unseal(); err != nil {
+		if err := admin.Unseal(context.Background()); err != nil {
 			t.Fatalf("Failed to unseal: %v", err)
 		}
 
@@ -43,17 +44,17 @@ func TestAdminUnsealReseal(t *testing.T) {
 				{Match: "*", Classification: "test"},
 			},
 		}
-		if err := admin.AddPolicy(policy); err != nil {
+		if err := admin.AddPolicy(context.Background(), policy); err != nil {
 			t.Fatalf("Failed to add policy after unseal: %v", err)
 		}
 
 		// Seal again
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to reseal: %v", err)
 		}
 
 		// Should not be able to add policies when sealed
-		if err := admin.AddPolicy(policy); err == nil {
+		if err := admin.AddPolicy(context.Background(), policy); err == nil {
 			t.Error("Expected error when adding policy to sealed admin")
 		}
 	})
@@ -71,7 +72,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Seal - should increment session
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to seal: %v", err)
 		}
 		if session := admin.ConfigSession(); session != 1 {
@@ -79,10 +80,10 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Unseal and reseal - should increment again
-		if err := admin.Unseal(); err != nil {
+		if err := admin.Unseal(context.Background()); err != nil {
 			t.Fatalf("Failed to unseal: %v", err)
 		}
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to reseal: %v", err)
 		}
 		if session := admin.ConfigSession(); session != 2 {
@@ -98,7 +99,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Seal and inspect a type to cache it
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to seal: %v", err)
 		}
 
@@ -107,7 +108,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// This should cache the metadata
-		_ = Inspect[TestType]()
+		_ = Inspect[TestType](context.Background())
 
 		// Verify it's cached
 		if _, exists := instance.cache.Get(getTypeName(reflect.TypeOf(TestType{}))); !exists {
@@ -115,7 +116,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Unseal - should clear cache
-		if err := admin.Unseal(); err != nil {
+		if err := admin.Unseal(context.Background()); err != nil {
 			t.Fatalf("Failed to unseal: %v", err)
 		}
 
@@ -134,16 +135,16 @@ func TestAdminUnsealReseal(t *testing.T) {
 
 		// Multiple cycles should work when not enforcing one config period
 		for i := 0; i < 3; i++ {
-			if err := admin.Seal(); err != nil {
+			if err := admin.Seal(context.Background()); err != nil {
 				t.Fatalf("Failed to seal on iteration %d: %v", i, err)
 			}
-			if err := admin.Unseal(); err != nil {
+			if err := admin.Unseal(context.Background()); err != nil {
 				t.Fatalf("Failed to unseal on iteration %d: %v", i, err)
 			}
 		}
 
 		// Final seal
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed final seal: %v", err)
 		}
 
@@ -160,7 +161,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Should error if trying to unseal when not sealed
-		if err := admin.Unseal(); err == nil {
+		if err := admin.Unseal(context.Background()); err == nil {
 			t.Error("Expected error when unsealing non-sealed admin")
 		}
 	})
@@ -173,12 +174,12 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// First seal should work
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to seal: %v", err)
 		}
 
 		// Second seal should error
-		if err := admin.Seal(); err == nil {
+		if err := admin.Seal(context.Background()); err == nil {
 			t.Error("Expected error when sealing already sealed admin")
 		}
 	})
@@ -196,7 +197,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Seal admin
-		if err := admin.Seal(); err != nil {
+		if err := admin.Seal(context.Background()); err != nil {
 			t.Fatalf("Failed to seal: %v", err)
 		}
 
@@ -206,7 +207,7 @@ func TestAdminUnsealReseal(t *testing.T) {
 		}
 
 		// Unseal admin
-		if err := admin.Unseal(); err != nil {
+		if err := admin.Unseal(context.Background()); err != nil {
 			t.Fatalf("Failed to unseal: %v", err)
 		}
 
@@ -227,7 +228,7 @@ func TestAutoSeal(t *testing.T) {
 		}
 
 		// Should auto-seal and allow inspection
-		metadata := Inspect[SimpleType]()
+		metadata := Inspect[SimpleType](context.Background())
 		if metadata.TypeName != "SimpleType" {
 			t.Errorf("Expected TypeName 'SimpleType', got %s", metadata.TypeName)
 		}
@@ -252,7 +253,7 @@ func TestAutoSeal(t *testing.T) {
 				{Match: "*", Classification: "test"},
 			},
 		}
-		if err := admin.AddPolicy(policy); err != nil {
+		if err := admin.AddPolicy(context.Background(), policy); err != nil {
 			t.Fatalf("Failed to add policy: %v", err)
 		}
 
@@ -265,7 +266,7 @@ func TestAutoSeal(t *testing.T) {
 		type TestType struct {
 			Value string `json:"value"`
 		}
-		metadata := Inspect[TestType]()
+		metadata := Inspect[TestType](context.Background())
 
 		// Should have the classification from policy
 		if metadata.Classification != "test" {
@@ -283,7 +284,7 @@ func TestAutoSeal(t *testing.T) {
 		}
 
 		// Should not be able to modify policies
-		if err := admin.AddPolicy(policy); err == nil {
+		if err := admin.AddPolicy(context.Background(), policy); err == nil {
 			t.Error("Expected error when adding policy after auto-seal")
 		}
 	})

@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -43,7 +44,7 @@ func NewAdmin() (*Admin, error) {
 // SetPolicies replaces all policies with the provided set.
 // This immediately invalidates cached metadata to ensure consistency.
 // Returns an error if called when configuration is sealed.
-func (a *Admin) SetPolicies(policies []Policy) error {
+func (a *Admin) SetPolicies(ctx context.Context, policies []Policy) error {
 	if a.sealed.Load() {
 		return fmt.Errorf("sentinel: cannot modify policies while configuration is sealed - call Unseal() first")
 	}
@@ -59,7 +60,7 @@ func (a *Admin) SetPolicies(policies []Policy) error {
 	a.sentinel.cache.Clear()
 
 	// Emit admin event
-	Logger.Admin.Emit("ADMIN_ACTION", "Policies set", AdminEvent{
+	Logger.Admin.Emit(ctx, "ADMIN_ACTION", "Policies set", AdminEvent{
 		Timestamp:   time.Now(),
 		Action:      "policy_set",
 		PolicyCount: len(policies),
@@ -70,7 +71,7 @@ func (a *Admin) SetPolicies(policies []Policy) error {
 // AddPolicy adds one or more policies to the current set.
 // This immediately invalidates cached metadata to ensure consistency.
 // Returns an error if called when configuration is sealed.
-func (a *Admin) AddPolicy(policies ...Policy) error {
+func (a *Admin) AddPolicy(ctx context.Context, policies ...Policy) error {
 	if a.sealed.Load() {
 		return fmt.Errorf("sentinel: cannot modify policies while configuration is sealed - call Unseal() first")
 	}
@@ -86,7 +87,7 @@ func (a *Admin) AddPolicy(policies ...Policy) error {
 	a.sentinel.cache.Clear()
 
 	// Emit admin event
-	Logger.Admin.Emit("ADMIN_ACTION", "Policies added", AdminEvent{
+	Logger.Admin.Emit(ctx, "ADMIN_ACTION", "Policies added", AdminEvent{
 		Timestamp:   time.Now(),
 		Action:      "policy_added",
 		PolicyCount: len(a.sentinel.policies),
@@ -105,7 +106,7 @@ func (a *Admin) GetPolicies() []Policy {
 
 // Seal freezes the configuration, preventing any further policy changes.
 // After sealing, type inspection is allowed but policy modifications will return errors.
-func (a *Admin) Seal() error {
+func (a *Admin) Seal(ctx context.Context) error {
 	if a.sealed.Load() {
 		return fmt.Errorf("sentinel: configuration already sealed")
 	}
@@ -118,7 +119,7 @@ func (a *Admin) Seal() error {
 	a.configSession.Add(1)
 
 	// Emit admin event
-	Logger.Admin.Emit("ADMIN_ACTION", "Configuration sealed", AdminEvent{
+	Logger.Admin.Emit(ctx, "ADMIN_ACTION", "Configuration sealed", AdminEvent{
 		Timestamp:   time.Now(),
 		Action:      "sealed",
 		PolicyCount: len(a.sentinel.policies),
@@ -128,7 +129,7 @@ func (a *Admin) Seal() error {
 
 // Unseal allows configuration changes again by clearing the cache and unsealing.
 // This ensures proper cache invalidation when policies change.
-func (a *Admin) Unseal() error {
+func (a *Admin) Unseal(ctx context.Context) error {
 	if !a.sealed.Load() {
 		return fmt.Errorf("sentinel: configuration is not sealed")
 	}
@@ -141,7 +142,7 @@ func (a *Admin) Unseal() error {
 	instance.configSealed.Store(false)
 
 	// Emit admin event
-	Logger.Admin.Emit("ADMIN_ACTION", "Configuration unsealed", AdminEvent{
+	Logger.Admin.Emit(ctx, "ADMIN_ACTION", "Configuration unsealed", AdminEvent{
 		Timestamp:   time.Now(),
 		Action:      "unsealed",
 		PolicyCount: len(a.sentinel.policies),

@@ -1,6 +1,7 @@
 package sentinel
 
 import (
+	"context"
 	"reflect"
 	"testing"
 )
@@ -130,7 +131,7 @@ func TestApplyPolicies(t *testing.T) {
 			},
 		}
 
-		result := s.applyPolicies(ec)
+		result := s.applyPolicies(context.Background(), ec)
 		if len(result.Applied) != 0 {
 			t.Errorf("expected no policies applied, got %v", result.Applied)
 		}
@@ -168,7 +169,7 @@ func TestApplyPolicies(t *testing.T) {
 			},
 		}
 
-		result := s.applyPolicies(ec)
+		result := s.applyPolicies(context.Background(), ec)
 		if len(result.Errors) != 2 {
 			t.Errorf("expected 2 errors for missing fields, got %d: %v", len(result.Errors), result.Errors)
 		}
@@ -188,7 +189,7 @@ func TestApplyPolicies(t *testing.T) {
 			},
 		}
 
-		result2 := s.applyPolicies(ec2)
+		result2 := s.applyPolicies(context.Background(), ec2)
 		if len(result2.Errors) != 2 {
 			t.Errorf("expected 2 errors for wrong types, got %d: %v", len(result2.Errors), result2.Errors)
 		}
@@ -216,7 +217,7 @@ func TestApplyPolicies(t *testing.T) {
 			},
 		}
 
-		result := s.applyPolicies(ec)
+		result := s.applyPolicies(context.Background(), ec)
 		if len(result.Applied) != 1 {
 			t.Errorf("expected 1 policy applied, got %v", result.Applied)
 		}
