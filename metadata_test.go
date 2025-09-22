@@ -5,62 +5,6 @@ import (
 	"testing"
 )
 
-func TestCodec(t *testing.T) {
-	t.Run("codec constants", func(t *testing.T) {
-		// Verify codec constants have expected values
-		codecs := map[Codec]string{
-			CodecJSON:       "json",
-			CodecXML:        "xml",
-			CodecYAML:       "yaml",
-			CodecTOML:       "toml",
-			CodecMsgpack:    "msgpack",
-			CodecProtobuf:   "protobuf",
-			CodecCBOR:       "cbor",
-			CodecGOB:        "gob",
-			CodecCSV:        "csv",
-			CodecAvro:       "avro",
-			CodecThrift:     "thrift",
-			CodecBSON:       "bson",
-			CodecFlatbuffer: "flatbuffer",
-			CodecCapnProto:  "capnproto",
-			CodecIon:        "ion",
-		}
-
-		for codec, expected := range codecs {
-			if string(codec) != expected {
-				t.Errorf("codec %v: expected %q, got %q", codec, expected, string(codec))
-			}
-		}
-	})
-
-	t.Run("IsValidCodec", func(t *testing.T) {
-		// Test valid codecs
-		validTests := []string{
-			"json", "xml", "yaml", "toml", "msgpack", "protobuf",
-			"cbor", "gob", "csv", "avro", "thrift", "bson",
-			"flatbuffer", "capnproto", "ion",
-		}
-
-		for _, codec := range validTests {
-			if !IsValidCodec(codec) {
-				t.Errorf("expected %q to be valid codec", codec)
-			}
-		}
-
-		// Test invalid codecs
-		invalidTests := []string{
-			"", "JSON", "Json", "unknown", "binary", "text",
-			"jsonp", "xml2", "yaml2", "proto", " json", "json ",
-		}
-
-		for _, codec := range invalidTests {
-			if IsValidCodec(codec) {
-				t.Errorf("expected %q to be invalid codec", codec)
-			}
-		}
-	})
-}
-
 func TestModelMetadata(t *testing.T) {
 	t.Run("struct fields", func(t *testing.T) {
 		metadata := ModelMetadata{
@@ -73,7 +17,6 @@ func TestModelMetadata(t *testing.T) {
 					Tags: map[string]string{"json": "id"},
 				},
 			},
-			Codecs: []string{"json", "xml"},
 		}
 
 		if metadata.TypeName != "User" {
@@ -85,9 +28,6 @@ func TestModelMetadata(t *testing.T) {
 		if len(metadata.Fields) != 1 {
 			t.Errorf("expected 1 field, got %d", len(metadata.Fields))
 		}
-		if len(metadata.Codecs) != 2 {
-			t.Errorf("expected 2 codecs, got %d", len(metadata.Codecs))
-		}
 	})
 
 	t.Run("json tags", func(t *testing.T) {
@@ -96,10 +36,10 @@ func TestModelMetadata(t *testing.T) {
 		metaType := reflect.TypeOf(metadata)
 
 		expectedTags := map[string]string{
-			"TypeName":    "type_name",
-			"PackageName": "package_name",
-			"Fields":      "fields",
-			"Codecs":      "codecs,omitempty",
+			"TypeName":      "type_name",
+			"PackageName":   "package_name",
+			"Fields":        "fields",
+			"Relationships": "relationships,omitempty",
 		}
 
 		for fieldName, expectedTag := range expectedTags {
@@ -236,27 +176,5 @@ func TestGetTypeName(t *testing.T) {
 				t.Errorf("expected %q, got %q", tt.expected, result)
 			}
 		})
-	}
-}
-
-func TestValidCodecsMap(t *testing.T) {
-	// Ensure validCodecs map has all codec constants
-	expectedCount := 15 // Number of codec constants
-
-	if len(validCodecs) != expectedCount {
-		t.Errorf("expected %d codecs in validCodecs map, got %d", expectedCount, len(validCodecs))
-	}
-
-	// Verify each codec constant is in the map
-	codecs := []Codec{
-		CodecJSON, CodecXML, CodecYAML, CodecTOML, CodecMsgpack,
-		CodecProtobuf, CodecCBOR, CodecGOB, CodecCSV, CodecAvro,
-		CodecThrift, CodecBSON, CodecFlatbuffer, CodecCapnProto, CodecIon,
-	}
-
-	for _, codec := range codecs {
-		if !validCodecs[string(codec)] {
-			t.Errorf("codec %s not found in validCodecs map", codec)
-		}
 	}
 }

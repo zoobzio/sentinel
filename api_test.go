@@ -28,20 +28,14 @@ type NestedStruct struct {
 	Enabled bool     `json:"enabled"`
 }
 
-// setupSentinelForTest initializes and seals sentinel for testing.
+// setupSentinelForTest initializes sentinel for testing.
 func setupSentinelForTest() {
-	resetAdminForTesting()
-	admin, err := NewAdmin()
-	if err != nil {
-		panic(err) // In tests, panic is acceptable
-	}
-	if err := admin.Seal(context.Background()); err != nil {
-		panic(err) // In tests, panic is acceptable
-	}
+	// Clear cache for clean test state
+	instance.cache.Clear()
 }
 
 func TestInspect(t *testing.T) {
-	// Setup sentinel with sealed configuration
+	// Setup sentinel
 	setupSentinelForTest()
 
 	// Register tags for tests

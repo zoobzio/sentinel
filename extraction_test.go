@@ -6,34 +6,10 @@ import (
 	"testing"
 )
 
-func TestExtractionContext(t *testing.T) {
-	t.Run("struct fields", func(t *testing.T) {
-		type TestStruct struct {
-			Name string
-		}
-
-		ec := &ExtractionContext{
-			Type:     reflect.TypeOf(TestStruct{}),
-			Instance: TestStruct{},
-			Metadata: ModelMetadata{
-				TypeName: "TestStruct",
-			},
-		}
-
-		if ec.Type.Name() != "TestStruct" {
-			t.Errorf("expected Type name 'TestStruct', got %s", ec.Type.Name())
-		}
-		if ec.Metadata.TypeName != "TestStruct" {
-			t.Errorf("expected Metadata.TypeName 'TestStruct', got %s", ec.Metadata.TypeName)
-		}
-	})
-}
-
-func TestBasicReflection(t *testing.T) {
+func TestExtractMetadata(t *testing.T) {
 	// Create a test sentinel instance for testing internal methods
 	s := &Sentinel{
 		registeredTags: make(map[string]bool),
-		policies:       []Policy{},
 	}
 
 	t.Run("simple struct", func(t *testing.T) {
@@ -41,24 +17,18 @@ func TestBasicReflection(t *testing.T) {
 			Name string `json:"name" validate:"required"`
 		}
 
-		ec := &ExtractionContext{
-			Type:     reflect.TypeOf(SimpleStruct{}),
-			Instance: SimpleStruct{},
+		var zero SimpleStruct
+		typ := reflect.TypeOf(zero)
+		metadata := s.extractMetadata(context.Background(), typ, zero)
+
+		if metadata.TypeName != "SimpleStruct" {
+			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
+		}
+		if len(metadata.Fields) != 1 {
+			t.Fatalf("expected 1 field, got %d", len(metadata.Fields))
 		}
 
-		result, err := s.basicReflection(context.Background(), ec)
-		if err != nil {
-			t.Fatalf("basicReflection failed: %v", err)
-		}
-
-		if result.Metadata.TypeName != "SimpleStruct" {
-			t.Errorf("expected TypeName 'SimpleStruct', got %s", result.Metadata.TypeName)
-		}
-		if len(result.Metadata.Fields) != 1 {
-			t.Fatalf("expected 1 field, got %d", len(result.Metadata.Fields))
-		}
-
-		field := result.Metadata.Fields[0]
+		field := metadata.Fields[0]
 		if field.Name != "Name" {
 			t.Errorf("expected field name 'Name', got %s", field.Name)
 		}
@@ -81,26 +51,20 @@ func TestBasicReflection(t *testing.T) {
 			unexported string //nolint:unused
 		}
 
-		ec := &ExtractionContext{
-			Type:     reflect.TypeOf(ComplexStruct{}),
-			Instance: ComplexStruct{},
-		}
-
-		result, err := s.basicReflection(context.Background(), ec)
-		if err != nil {
-			t.Fatalf("basicReflection failed: %v", err)
-		}
+		var zero ComplexStruct
+		typ := reflect.TypeOf(zero)
+		metadata := s.extractMetadata(context.Background(), typ, zero)
 
 		// Should only have 3 fields (unexported excluded)
-		if len(result.Metadata.Fields) != 3 {
-			t.Errorf("expected 3 fields, got %d", len(result.Metadata.Fields))
+		if len(metadata.Fields) != 3 {
+			t.Errorf("expected 3 fields, got %d", len(metadata.Fields))
 		}
 
 		// Verify field names
 		expectedNames := []string{"ID", "Name", "Active"}
 		for i, expected := range expectedNames {
-			if result.Metadata.Fields[i].Name != expected {
-				t.Errorf("field %d: expected name %s, got %s", i, expected, result.Metadata.Fields[i].Name)
+			if metadata.Fields[i].Name != expected {
+				t.Errorf("field %d: expected name %s, got %s", i, expected, metadata.Fields[i].Name)
 			}
 		}
 	})
@@ -108,18 +72,12 @@ func TestBasicReflection(t *testing.T) {
 	t.Run("empty struct", func(t *testing.T) {
 		type EmptyStruct struct{}
 
-		ec := &ExtractionContext{
-			Type:     reflect.TypeOf(EmptyStruct{}),
-			Instance: EmptyStruct{},
-		}
+		var zero EmptyStruct
+		typ := reflect.TypeOf(zero)
+		metadata := s.extractMetadata(context.Background(), typ, zero)
 
-		result, err := s.basicReflection(context.Background(), ec)
-		if err != nil {
-			t.Fatalf("basicReflection failed: %v", err)
-		}
-
-		if len(result.Metadata.Fields) != 0 {
-			t.Errorf("expected 0 fields for empty struct, got %d", len(result.Metadata.Fields))
+		if len(metadata.Fields) != 0 {
+			t.Errorf("expected 0 fields for empty struct, got %d", len(metadata.Fields))
 		}
 	})
 }
@@ -204,80 +162,6 @@ func TestExtractFieldMetadata(t *testing.T) {
 		fields := s.extractFieldMetadata(reflect.TypeOf("string"))
 		if len(fields) != 0 {
 			t.Errorf("expected 0 fields for non-struct type, got %d", len(fields))
-		}
-	})
-}
-
-func TestValidateMetadata(t *testing.T) {
-	s := &Sentinel{}
-
-	t.Run("valid metadata", func(t *testing.T) {
-		ec := &ExtractionContext{
-			Metadata: ModelMetadata{
-				TypeName: "TestStruct",
-			},
-		}
-
-		result, err := s.validateMetadata(context.Background(), ec)
-		if err != nil {
-			t.Errorf("validateMetadata failed: %v", err)
-		}
-		if result != ec {
-			t.Error("expected same ExtractionContext returned")
-		}
-	})
-
-	t.Run("missing type name", func(t *testing.T) {
-		ec := &ExtractionContext{
-			Metadata: ModelMetadata{
-				TypeName: "",
-			},
-		}
-
-		_, err := s.validateMetadata(context.Background(), ec)
-		if err == nil {
-			t.Error("expected error for missing type name")
-		}
-		if err.Error() != "extracted metadata missing type name" {
-			t.Errorf("unexpected error: %v", err)
-		}
-	})
-}
-
-func TestBuildExtractionPipeline(t *testing.T) {
-	s := &Sentinel{
-		registeredTags: make(map[string]bool),
-		policies:       []Policy{},
-	}
-
-	pipeline := s.buildExtractionPipeline()
-	if pipeline == nil {
-		t.Fatal("expected non-nil pipeline")
-	}
-
-	// Test that pipeline has expected stages
-	// This is more of an integration test - we'd need to expose pipeline internals
-	// to test more thoroughly
-	t.Run("pipeline executes", func(t *testing.T) {
-		type TestStruct struct {
-			Name string `json:"name"`
-		}
-
-		ec := &ExtractionContext{
-			Type:     reflect.TypeOf(TestStruct{}),
-			Instance: TestStruct{},
-		}
-
-		result, err := pipeline.Process(context.Background(), ec)
-		if err != nil {
-			t.Fatalf("pipeline execution failed: %v", err)
-		}
-
-		if result.Metadata.TypeName != "TestStruct" {
-			t.Errorf("expected TypeName 'TestStruct', got %s", result.Metadata.TypeName)
-		}
-		if len(result.Metadata.Fields) != 1 {
-			t.Errorf("expected 1 field, got %d", len(result.Metadata.Fields))
 		}
 	})
 }

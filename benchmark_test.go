@@ -30,17 +30,10 @@ type BenchmarkSimpleStruct struct {
 	Value string `json:"value"`
 }
 
-// Setup admin for benchmarks.
+// Setup for benchmarks.
 func init() {
-	// Set up sealed configuration for benchmarks
-	resetAdminForTesting()
-	admin, err := NewAdmin()
-	if err != nil {
-		panic("failed to create admin for benchmarks: " + err.Error())
-	}
-	if err := admin.Seal(context.Background()); err != nil {
-		panic(err)
-	}
+	// Set up configuration for benchmarks
+	instance.cache.Clear()
 }
 
 func BenchmarkInspectSimple(b *testing.B) {
@@ -91,7 +84,6 @@ func BenchmarkConcurrentInspect(b *testing.B) {
 		}
 	})
 }
-
 func BenchmarkInspectMemory(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()

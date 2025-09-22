@@ -1,4 +1,4 @@
-# GoReleaser configuration for sentinel - Security monitoring and event correlation library
+# GoReleaser configuration for sentinel - Struct metadata extraction and relationship discovery library
 # This configuration is optimized for a library package (no binaries in root)
 
 version: 2
@@ -110,7 +110,7 @@ release:
   header: |
     ## sentinel v{{ .Version }}
     
-    Security monitoring and event correlation library for Go applications.
+    Struct metadata extraction and relationship discovery for Go.
     
     ### Installation
     
@@ -119,7 +119,7 @@ release:
     ```
     
     ### Requirements
-    - Go 1.21 or higher
+    - Go 1.23 or higher
     
   # Custom release footer
   footer: |

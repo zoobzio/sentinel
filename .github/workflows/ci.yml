@@ -80,34 +80,3 @@ jobs:
         name: benchmark-results
         path: benchmark_results.txt
 
-  examples:
-    name: Example Validation
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.23'
-    
-    - name: Build and test examples
-      run: |
-        echo "### Building and testing all examples"
-        for dir in examples/*/; do
-          if [ -f "$dir/go.mod" ]; then
-            echo "#### Testing $dir"
-            (cd "$dir" && go build ./... && go test -v)
-          fi
-        done
-    
-    - name: Verify example imports
-      run: |
-        echo "### Verifying examples use sentinel correctly"
-        for dir in examples/*/; do
-          if [ -f "$dir/go.mod" ]; then
-            echo "Checking $dir"
-            # Verify they import the sentinel module
-            (cd "$dir" && go list -m github.com/zoobzio/sentinel) || echo "Warning: $dir doesn't import sentinel"
-          fi
-        done
