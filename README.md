@@ -191,6 +191,17 @@ metadata2 := sentinel.Inspect[User](ctx)  // ~nanoseconds
 - **Zero dependencies**: No external packages required
 - **Well tested**: 92%+ test coverage
 
+## Architecture: Global State Design
+
+Sentinel uses global state by design, which is optimal for struct metadata extraction because:
+
+- **Types are immutable after compilation**: Go's type system is fixed at compile time. A struct's fields, their types, and tags cannot change while the program is running.
+- **One type system = One sentinel**: Since types don't change during runtime, there's a 1:1 relationship between your application's type system and sentinel's metadata cache.
+- **No cleanup needed**: Unlike traditional caches that handle mutable data, sentinel's metadata is intentionally permanent. Once extracted, struct metadata remains valid for the entire program lifetime.
+- **Thread-safe by nature**: The immutability of type information means cached metadata can be safely accessed concurrently without synchronization overhead after initial extraction.
+
+This architectural decision eliminates unnecessary complexity around cache invalidation, lifecycle management, and instance passing that would provide no value for immutable type metadata.
+
 ## Installation
 
 ```bash
