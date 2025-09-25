@@ -1,5 +1,3 @@
-# sentinel
-
 [![CI Status](https://github.com/zoobzio/sentinel/workflows/CI/badge.svg)](https://github.com/zoobzio/sentinel/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/zoobzio/sentinel/graph/badge.svg?branch=main)](https://codecov.io/gh/zoobzio/sentinel)
 [![Go Report Card](https://goreportcard.com/badge/github.com/zoobzio/sentinel)](https://goreportcard.com/report/github.com/zoobzio/sentinel)
@@ -8,6 +6,8 @@
 [![License](https://img.shields.io/github/license/zoobzio/sentinel)](LICENSE)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/zoobzio/sentinel)](go.mod)
 [![Release](https://img.shields.io/github/v/release/zoobzio/sentinel)](https://github.com/zoobzio/sentinel/releases)
+
+# sentinel
 
 Struct metadata extraction and relationship discovery for Go with zero dependencies.
 
