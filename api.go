@@ -190,9 +190,9 @@ func Browse() []string {
 	return instance.cache.Keys()
 }
 
-// GetCachedMetadata returns cached metadata for a type name if it exists.
+// Lookup returns cached metadata for a type name if it exists.
 // This allows external packages to access metadata that has already been extracted.
-func GetCachedMetadata(typeName string) (ModelMetadata, bool) {
+func Lookup(typeName string) (ModelMetadata, bool) {
 	return instance.cache.Get(typeName)
 }
 

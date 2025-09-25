@@ -3,13 +3,17 @@ package sentinel
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 )
 
 func TestExtractMetadata(t *testing.T) {
-	// Create a test sentinel instance for testing internal methods
+	// Register custom tags for testing
+	Tag(context.Background(), "custom")
+	Tag(context.Background(), "validate")
+
 	s := &Sentinel{
-		registeredTags: make(map[string]bool),
+		registeredTags: instance.registeredTags,
 	}
 
 	t.Run("simple struct", func(t *testing.T) {
@@ -17,9 +21,8 @@ func TestExtractMetadata(t *testing.T) {
 			Name string `json:"name" validate:"required"`
 		}
 
-		var zero SimpleStruct
-		typ := reflect.TypeOf(zero)
-		metadata := s.extractMetadata(context.Background(), typ, zero)
+		typ := reflect.TypeOf(SimpleStruct{})
+		metadata := s.extractMetadata(context.Background(), typ, SimpleStruct{})
 
 		if metadata.TypeName != "SimpleStruct" {
 			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
@@ -51,9 +54,8 @@ func TestExtractMetadata(t *testing.T) {
 			unexported string //nolint:unused
 		}
 
-		var zero ComplexStruct
-		typ := reflect.TypeOf(zero)
-		metadata := s.extractMetadata(context.Background(), typ, zero)
+		typ := reflect.TypeOf(ComplexStruct{})
+		metadata := s.extractMetadata(context.Background(), typ, ComplexStruct{})
 
 		// Should only have 3 fields (unexported excluded)
 		if len(metadata.Fields) != 3 {
@@ -72,12 +74,95 @@ func TestExtractMetadata(t *testing.T) {
 	t.Run("empty struct", func(t *testing.T) {
 		type EmptyStruct struct{}
 
-		var zero EmptyStruct
-		typ := reflect.TypeOf(zero)
-		metadata := s.extractMetadata(context.Background(), typ, zero)
+		typ := reflect.TypeOf(EmptyStruct{})
+		metadata := s.extractMetadata(context.Background(), typ, EmptyStruct{})
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 fields for empty struct, got %d", len(metadata.Fields))
+		}
+	})
+
+	t.Run("array type", func(t *testing.T) {
+		type ArrayStruct struct {
+			Items [5]string `json:"items"`
+		}
+
+		typ := reflect.TypeOf(ArrayStruct{})
+		metadata := s.extractMetadata(context.Background(), typ, ArrayStruct{})
+
+		if metadata.TypeName != "ArrayStruct" {
+			t.Errorf("expected TypeName 'ArrayStruct', got %s", metadata.TypeName)
+		}
+
+		if len(metadata.Fields) != 1 {
+			t.Fatalf("expected 1 field, got %d", len(metadata.Fields))
+		}
+
+		field := metadata.Fields[0]
+		if field.Type != "[5]string" {
+			t.Errorf("expected type '[5]string', got %s", field.Type)
+		}
+	})
+
+	t.Run("recursive struct", func(t *testing.T) {
+		type Node struct {
+			Value    string `json:"value"`
+			Children []Node `json:"children"`
+		}
+
+		typ := reflect.TypeOf(Node{})
+		metadata := s.extractMetadata(context.Background(), typ, Node{})
+
+		if metadata.TypeName != "Node" {
+			t.Errorf("expected TypeName 'Node', got %s", metadata.TypeName)
+		}
+
+		if len(metadata.Fields) != 2 {
+			t.Fatalf("expected 2 fields, got %d", len(metadata.Fields))
+		}
+
+		// Check recursive type handling
+		for _, field := range metadata.Fields {
+			if field.Name == "Children" && !strings.Contains(field.Type, "Node") {
+				t.Errorf("expected type to contain 'Node', got %s", field.Type)
+			}
+		}
+	})
+
+	t.Run("struct with complex nested types", func(t *testing.T) {
+		type DeepStruct struct {
+			MapOfSlices map[string][]int        `json:"map_of_slices"`
+			SliceOfMaps []map[string]string     `json:"slice_of_maps"`
+			MapOfMaps   map[string]map[int]bool `json:"map_of_maps"`
+			ChanOfChans chan chan string        `json:"chan_of_chans"`
+			FuncReturns func() (string, error)  `json:"func_returns"`
+		}
+
+		typ := reflect.TypeOf(DeepStruct{})
+		metadata := s.extractMetadata(context.Background(), typ, DeepStruct{})
+
+		if len(metadata.Fields) != 5 {
+			t.Fatalf("expected 5 fields, got %d", len(metadata.Fields))
+		}
+
+		// Verify complex types are captured correctly
+		typeMap := make(map[string]string)
+		for _, f := range metadata.Fields {
+			typeMap[f.Name] = f.Type
+		}
+
+		expectedTypes := map[string]string{
+			"MapOfSlices": "map[string][]int",
+			"SliceOfMaps": "[]map[string]string",
+			"MapOfMaps":   "map[string]map[int]bool",
+			"ChanOfChans": "chan chan string",
+			"FuncReturns": "func() (string, error)",
+		}
+
+		for name, expectedType := range expectedTypes {
+			if typeMap[name] != expectedType {
+				t.Errorf("field %s: expected type %s, got %s", name, expectedType, typeMap[name])
+			}
 		}
 	})
 }

@@ -171,19 +171,32 @@ func generateDOTERDFiltered(includeTypes map[string]bool) string {
 	return sb.String()
 }
 
+const (
+	// Mermaid relationship styles.
+	mermaidOneToOne  = "||--||"
+	mermaidOneToMany = "||--o{"
+	mermaidEmbedding = "}|--|{"
+
+	// DOT edge styles.
+	dotArrowNormal  = "arrowhead=normal"
+	dotArrowCrow    = "arrowhead=crow"
+	dotArrowDiamond = "arrowhead=diamond"
+	dotArrowDashed  = "arrowhead=crow, style=dashed"
+)
+
 // getMermaidRelationship converts relationship kind to Mermaid syntax.
 func getMermaidRelationship(kind string) string {
 	switch kind {
 	case RelationshipReference:
-		return "||--||" // One-to-one
+		return mermaidOneToOne // One-to-one
 	case RelationshipCollection:
-		return "||--o{" // One-to-many
+		return mermaidOneToMany // One-to-many
 	case RelationshipEmbedding:
-		return "}|--|{" // Embedding/composition
+		return mermaidEmbedding // Embedding/composition
 	case RelationshipMap:
-		return "||--o{" // Map treated as one-to-many
+		return mermaidOneToMany // Map treated as one-to-many
 	default:
-		return "||--||"
+		return mermaidOneToOne
 	}
 }
 
@@ -191,15 +204,15 @@ func getMermaidRelationship(kind string) string {
 func getDOTEdgeStyle(kind string) string {
 	switch kind {
 	case RelationshipReference:
-		return "arrowhead=normal"
+		return dotArrowNormal
 	case RelationshipCollection:
-		return "arrowhead=crow"
+		return dotArrowCrow
 	case RelationshipEmbedding:
-		return "arrowhead=diamond"
+		return dotArrowDiamond
 	case RelationshipMap:
-		return "arrowhead=crow, style=dashed"
+		return dotArrowDashed
 	default:
-		return "arrowhead=normal"
+		return dotArrowNormal
 	}
 }
 

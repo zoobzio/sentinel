@@ -44,6 +44,73 @@ func TestInspect(t *testing.T) {
 	Tag(context.Background(), "db")
 	Tag(context.Background(), "desc")
 
+	t.Run("struct with anonymous fields", func(t *testing.T) {
+		type Embedded struct {
+			EmbeddedField string `json:"embedded_field"`
+		}
+
+		type WithAnonymous struct {
+			Embedded
+			OwnField string `json:"own_field"`
+		}
+
+		metadata := Inspect[WithAnonymous](context.Background())
+
+		// Anonymous fields show as the type name, not the embedded field names
+		if len(metadata.Fields) != 2 {
+			t.Errorf("expected 2 fields, got %d", len(metadata.Fields))
+		}
+
+		fieldMap := make(map[string]bool)
+		for _, f := range metadata.Fields {
+			fieldMap[f.Name] = true
+		}
+
+		// Anonymous field appears as "Embedded" not "EmbeddedField"
+		if !fieldMap["Embedded"] {
+			t.Error("embedded type field not found")
+		}
+		if !fieldMap["OwnField"] {
+			t.Error("own field not found")
+		}
+	})
+
+	t.Run("struct with complex types", func(t *testing.T) {
+		type ComplexStruct struct {
+			MapField   map[string]int `json:"map_field"`
+			SliceField []string       `json:"slice_field"`
+			ChanField  chan int       `json:"chan_field"`
+			FuncField  func() string  `json:"func_field"`
+			PtrField   *int           `json:"ptr_field"`
+		}
+
+		metadata := Inspect[ComplexStruct](context.Background())
+
+		if len(metadata.Fields) != 5 {
+			t.Fatalf("expected 5 fields, got %d", len(metadata.Fields))
+		}
+
+		// Verify each field type is captured
+		for _, field := range metadata.Fields {
+			if field.Type == "" {
+				t.Errorf("field %s has empty type", field.Name)
+			}
+		}
+	})
+
+	t.Run("struct with interface fields", func(t *testing.T) {
+		type InterfaceStruct struct {
+			AnyField   interface{} `json:"any_field"`
+			ErrorField error       `json:"error_field"`
+		}
+
+		metadata := Inspect[InterfaceStruct](context.Background())
+
+		if len(metadata.Fields) != 2 {
+			t.Fatalf("expected 2 fields, got %d", len(metadata.Fields))
+		}
+	})
+
 	t.Run("basic struct inspection", func(t *testing.T) {
 		metadata := Inspect[SimpleStruct](context.Background())
 
@@ -171,6 +238,59 @@ func TestTag(t *testing.T) {
 		}
 	})
 
+	t.Run("multiple custom tags", func(t *testing.T) {
+		// Register multiple custom tags
+		Tag(context.Background(), "role")
+		Tag(context.Background(), "permission")
+		Tag(context.Background(), "audit")
+
+		type MultiTagStruct struct {
+			PublicField  string `json:"public" role:"user" permission:"read"`
+			PrivateField string `json:"private" role:"admin" permission:"write" audit:"true"`
+		}
+
+		metadata := Inspect[MultiTagStruct](context.Background())
+
+		// Verify all custom tags are extracted
+		for _, field := range metadata.Fields {
+			if field.Name == "PublicField" {
+				if field.Tags["role"] != "user" {
+					t.Errorf("expected role 'user', got %s", field.Tags["role"])
+				}
+				if field.Tags["permission"] != "read" {
+					t.Errorf("expected permission 'read', got %s", field.Tags["permission"])
+				}
+			}
+			if field.Name == "PrivateField" {
+				if field.Tags["role"] != "admin" {
+					t.Errorf("expected role 'admin', got %s", field.Tags["role"])
+				}
+				if field.Tags["permission"] != "write" {
+					t.Errorf("expected permission 'write', got %s", field.Tags["permission"])
+				}
+				if field.Tags["audit"] != "true" {
+					t.Errorf("expected audit 'true', got %s", field.Tags["audit"])
+				}
+			}
+		}
+	})
+
+	t.Run("duplicate tag registration", func(t *testing.T) {
+		// Register same tag multiple times (should not error)
+		Tag(context.Background(), "duplicate")
+		Tag(context.Background(), "duplicate")
+		Tag(context.Background(), "duplicate")
+
+		type DuplicateStruct struct {
+			Field string `duplicate:"value"`
+		}
+
+		metadata := Inspect[DuplicateStruct](context.Background())
+		if metadata.Fields[0].Tags["duplicate"] != "value" {
+			t.Error("expected 'duplicate' tag to be extracted after multiple registrations")
+		}
+	})
+
 	t.Run("custom tag extraction", func(t *testing.T) {
 		// Register custom tag
 		Tag(context.Background(), "scope")
@@ -239,6 +359,69 @@ func TestBrowse(t *testing.T) {
 		// This is expected behavior
 		if len(types) == 0 {
 			t.Log("Browse returned empty (global singleton may have been cleared)")
+		}
+	})
+}
+
+func TestLookup(t *testing.T) {
+	t.Run("lookup existing type", func(t *testing.T) {
+		// First inspect a type to cache it
+		type LookupTestStruct struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		}
+
+		original := Inspect[LookupTestStruct](context.Background())
+
+		// Now lookup the cached metadata
+		retrieved, found := Lookup("LookupTestStruct")
+
+		if !found {
+			t.Fatal("expected to find cached metadata")
+		}
+
+		if retrieved.TypeName != original.TypeName {
+			t.Errorf("expected TypeName %s, got %s", original.TypeName, retrieved.TypeName)
+		}
+
+		if len(retrieved.Fields) != len(original.Fields) {
+			t.Errorf("expected %d fields, got %d", len(original.Fields), len(retrieved.Fields))
+		}
+	})
+
+	t.Run("lookup non-existent type", func(t *testing.T) {
+		metadata, found := Lookup("NonExistentType")
+
+		if found {
+			t.Error("expected not to find non-existent type")
+		}
+
+		if metadata.TypeName != "" {
+			t.Error("expected empty metadata for non-existent type")
+		}
+	})
+
+	t.Run("lookup after clear", func(t *testing.T) {
+		// Ensure a type is cached
+		type ClearTestStruct struct {
+			Value string `json:"value"`
+		}
+
+		Inspect[ClearTestStruct](context.Background())
+
+		// Verify it exists
+		_, found := Lookup("ClearTestStruct")
+		if !found {
+			t.Fatal("expected to find type before clear")
+		}
+
+		// Clear cache
+		instance.cache.Clear()
+
+		// Should no longer exist
+		_, found = Lookup("ClearTestStruct")
+		if found {
+			t.Error("expected not to find type after clear")
 		}
 	})
 }

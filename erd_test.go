@@ -167,3 +167,77 @@ func TestERDFormat(t *testing.T) {
 		}
 	})
 }
+
+func TestGetMermaidRelationship(t *testing.T) {
+	t.Run("reference", func(t *testing.T) {
+		rel := getMermaidRelationship(RelationshipReference)
+		if rel != mermaidOneToOne {
+			t.Errorf("expected %s for reference, got %s", mermaidOneToOne, rel)
+		}
+	})
+
+	t.Run("collection", func(t *testing.T) {
+		rel := getMermaidRelationship(RelationshipCollection)
+		if rel != mermaidOneToMany {
+			t.Errorf("expected %s for collection, got %s", mermaidOneToMany, rel)
+		}
+	})
+
+	t.Run("embedding", func(t *testing.T) {
+		rel := getMermaidRelationship(RelationshipEmbedding)
+		if rel != mermaidEmbedding {
+			t.Errorf("expected %s for embedding, got %s", mermaidEmbedding, rel)
+		}
+	})
+
+	t.Run("map", func(t *testing.T) {
+		rel := getMermaidRelationship(RelationshipMap)
+		if rel != mermaidOneToMany {
+			t.Errorf("expected %s for map, got %s", mermaidOneToMany, rel)
+		}
+	})
+
+	t.Run("default case", func(t *testing.T) {
+		rel := getMermaidRelationship("unknown")
+		if rel != mermaidOneToOne {
+			t.Errorf("expected %s for unknown relationship, got %s", mermaidOneToOne, rel)
+		}
+	})
+}
+
+func TestGetDOTEdgeStyle(t *testing.T) {
+	t.Run("reference", func(t *testing.T) {
+		style := getDOTEdgeStyle(RelationshipReference)
+		if style != dotArrowNormal {
+			t.Errorf("expected %s for reference, got %s", dotArrowNormal, style)
+		}
+	})
+
+	t.Run("collection", func(t *testing.T) {
+		style := getDOTEdgeStyle(RelationshipCollection)
+		if style != dotArrowCrow {
+			t.Errorf("expected %s for collection, got %s", dotArrowCrow, style)
+		}
+	})
+
+	t.Run("embedding", func(t *testing.T) {
+		style := getDOTEdgeStyle(RelationshipEmbedding)
+		if style != dotArrowDiamond {
+			t.Errorf("expected %s for embedding, got %s", dotArrowDiamond, style)
+		}
+	})
+
+	t.Run("map", func(t *testing.T) {
+		style := getDOTEdgeStyle(RelationshipMap)
+		if style != dotArrowDashed {
+			t.Errorf("expected %s for map, got %s", dotArrowDashed, style)
+		}
+	})
+
+	t.Run("default case", func(t *testing.T) {
+		style := getDOTEdgeStyle("unknown")
+		if style != dotArrowNormal {
+			t.Errorf("expected %s for unknown relationship, got %s", dotArrowNormal, style)
+		}
+	})
+}

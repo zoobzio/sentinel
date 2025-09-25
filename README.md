@@ -225,7 +225,7 @@ func Tag(ctx context.Context, tagName string)
 func Browse() []string
 
 // Get cached metadata by type name
-func GetCachedMetadata(typeName string) (ModelMetadata, bool)
+func Lookup(typeName string) (ModelMetadata, bool)
 
 // Get all cached metadata at once
 func Schema() map[string]ModelMetadata
