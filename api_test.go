@@ -243,6 +243,78 @@ func TestBrowse(t *testing.T) {
 	})
 }
 
+func TestSchema(t *testing.T) {
+	t.Run("returns all cached metadata", func(t *testing.T) {
+		// Ensure some types are inspected
+		type SchemaTestUser struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		}
+		type SchemaTestProduct struct {
+			SKU   string  `json:"sku"`
+			Price float64 `json:"price"`
+		}
+
+		// Inspect the types
+		userMeta := Inspect[SchemaTestUser](context.Background())
+		productMeta := Inspect[SchemaTestProduct](context.Background())
+
+		// Get the full schema
+		schema := Schema()
+
+		// Schema should contain at least our test types
+		if len(schema) < 2 {
+			t.Fatalf("expected at least 2 types in schema, got %d", len(schema))
+		}
+
+		// Verify our types are in the schema
+		if retrievedUser, exists := schema["SchemaTestUser"]; !exists {
+			t.Error("SchemaTestUser not found in schema")
+		} else {
+			if retrievedUser.TypeName != userMeta.TypeName {
+				t.Errorf("schema user type mismatch: got %s, want %s",
+					retrievedUser.TypeName, userMeta.TypeName)
+			}
+			if len(retrievedUser.Fields) != 2 {
+				t.Errorf("expected 2 fields for SchemaTestUser, got %d",
+					len(retrievedUser.Fields))
+			}
+		}
+
+		if retrievedProduct, exists := schema["SchemaTestProduct"]; !exists {
+			t.Error("SchemaTestProduct not found in schema")
+		} else {
+			if retrievedProduct.TypeName != productMeta.TypeName {
+				t.Errorf("schema product type mismatch: got %s, want %s",
+					retrievedProduct.TypeName, productMeta.TypeName)
+			}
+			if len(retrievedProduct.Fields) != 2 {
+				t.Errorf("expected 2 fields for SchemaTestProduct, got %d",
+					len(retrievedProduct.Fields))
+			}
+		}
+	})
+
+	t.Run("returns copy not reference", func(t *testing.T) {
+		// Get schema twice
+		schema1 := Schema()
+		schema2 := Schema()
+
+		// Modifying one should not affect the other
+		if len(schema1) > 0 {
+			for key := range schema1 {
+				delete(schema1, key)
+				break // Delete just one to test
+			}
+
+			// schema2 should still have all entries
+			if len(schema2) != len(Schema()) {
+				t.Error("Schema() returned a reference instead of a copy")
+			}
+		}
+	})
+}
+
 func TestEdgeCases(t *testing.T) {
 	t.Run("struct with no fields", func(t *testing.T) {
 		type EmptyStruct struct{}

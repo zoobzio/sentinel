@@ -226,6 +226,9 @@ func Browse() []string
 
 // Get cached metadata by type name
 func GetCachedMetadata(typeName string) (ModelMetadata, bool)
+
+// Get all cached metadata at once
+func Schema() map[string]ModelMetadata
 ```
 
 ### Relationship Functions
@@ -298,6 +301,29 @@ type APIRequest struct {
 
 metadata := sentinel.Inspect[APIRequest](ctx)
 // Use metadata to generate OpenAPI specs, documentation, etc.
+```
+
+### Export complete schema
+
+```go
+// Inspect various types throughout your application
+sentinel.Inspect[User](ctx)
+sentinel.Inspect[Product](ctx) 
+sentinel.Inspect[Order](ctx)
+
+// Get the complete schema all at once
+schema := sentinel.Schema()
+
+// Export as JSON for documentation or code generation
+jsonSchema, _ := json.MarshalIndent(schema, "", "  ")
+fmt.Println(string(jsonSchema))
+
+// Use for validation, documentation generation, or API contracts
+for typeName, metadata := range schema {
+    fmt.Printf("Type: %s\n", typeName)
+    fmt.Printf("  Fields: %d\n", len(metadata.Fields))
+    fmt.Printf("  Relationships: %d\n", len(metadata.Relationships))
+}
 ```
 
 ## Contributing
