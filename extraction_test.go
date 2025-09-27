@@ -1,7 +1,6 @@
 package sentinel
 
 import (
-	"context"
 	"reflect"
 	"strings"
 	"testing"
@@ -9,8 +8,8 @@ import (
 
 func TestExtractMetadata(t *testing.T) {
 	// Register custom tags for testing
-	Tag(context.Background(), "custom")
-	Tag(context.Background(), "validate")
+	Tag("custom")
+	Tag("validate")
 
 	s := &Sentinel{
 		registeredTags: instance.registeredTags,
@@ -22,7 +21,7 @@ func TestExtractMetadata(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(SimpleStruct{})
-		metadata := s.extractMetadata(context.Background(), typ, SimpleStruct{})
+		metadata := s.extractMetadata(typ)
 
 		if metadata.TypeName != "SimpleStruct" {
 			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
@@ -55,7 +54,7 @@ func TestExtractMetadata(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(ComplexStruct{})
-		metadata := s.extractMetadata(context.Background(), typ, ComplexStruct{})
+		metadata := s.extractMetadata(typ)
 
 		// Should only have 3 fields (unexported excluded)
 		if len(metadata.Fields) != 3 {
@@ -75,7 +74,7 @@ func TestExtractMetadata(t *testing.T) {
 		type EmptyStruct struct{}
 
 		typ := reflect.TypeOf(EmptyStruct{})
-		metadata := s.extractMetadata(context.Background(), typ, EmptyStruct{})
+		metadata := s.extractMetadata(typ)
 
 		if len(metadata.Fields) != 0 {
 			t.Errorf("expected 0 fields for empty struct, got %d", len(metadata.Fields))
@@ -88,7 +87,7 @@ func TestExtractMetadata(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(ArrayStruct{})
-		metadata := s.extractMetadata(context.Background(), typ, ArrayStruct{})
+		metadata := s.extractMetadata(typ)
 
 		if metadata.TypeName != "ArrayStruct" {
 			t.Errorf("expected TypeName 'ArrayStruct', got %s", metadata.TypeName)
@@ -111,7 +110,7 @@ func TestExtractMetadata(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(Node{})
-		metadata := s.extractMetadata(context.Background(), typ, Node{})
+		metadata := s.extractMetadata(typ)
 
 		if metadata.TypeName != "Node" {
 			t.Errorf("expected TypeName 'Node', got %s", metadata.TypeName)
@@ -139,7 +138,7 @@ func TestExtractMetadata(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(DeepStruct{})
-		metadata := s.extractMetadata(context.Background(), typ, DeepStruct{})
+		metadata := s.extractMetadata(typ)
 
 		if len(metadata.Fields) != 5 {
 			t.Fatalf("expected 5 fields, got %d", len(metadata.Fields))

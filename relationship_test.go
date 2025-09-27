@@ -1,7 +1,6 @@
 package sentinel
 
 import (
-	"context"
 	"strings"
 	"testing"
 )
@@ -58,7 +57,7 @@ func TestRelationshipExtraction(t *testing.T) {
 	instance.cache.Clear()
 
 	t.Run("BasicRelationships", func(t *testing.T) {
-		metadata := Inspect[User](context.Background())
+		metadata := Inspect[User]()
 
 		// Check relationships were extracted
 		if len(metadata.Relationships) == 0 {
@@ -118,7 +117,7 @@ func TestRelationshipExtraction(t *testing.T) {
 
 	t.Run("NestedRelationships", func(t *testing.T) {
 		// Inspect Profile to get its relationships
-		profileMeta := Inspect[Profile](context.Background())
+		profileMeta := Inspect[Profile]()
 
 		// Should have relationship to Address
 		var hasAddress bool
@@ -136,7 +135,7 @@ func TestRelationshipExtraction(t *testing.T) {
 
 	t.Run("MapRelationships", func(t *testing.T) {
 		// Inspect Settings to check map relationships
-		settingsMeta := Inspect[Settings](context.Background())
+		settingsMeta := Inspect[Settings]()
 
 		var hasMetadata bool
 		for _, rel := range settingsMeta.Relationships {
@@ -160,7 +159,7 @@ func TestRelationshipExtraction(t *testing.T) {
 			DB ExternalDB // This should not create a relationship
 		}
 
-		metadata := Inspect[LocalType](context.Background())
+		metadata := Inspect[LocalType]()
 
 		// ExternalDB is actually in the same package (test file), so it WILL be included
 		// This test is actually incorrect - let's fix it by checking what we got
@@ -175,13 +174,13 @@ func TestRelationshipExtraction(t *testing.T) {
 func TestRelationshipAPIs(t *testing.T) {
 	// Reset and inspect our test types
 	instance.cache.Clear()
-	Inspect[User](context.Background())
-	Inspect[Profile](context.Background())
-	Inspect[Order](context.Background())
-	Inspect[OrderItem](context.Background())
+	Inspect[User]()
+	Inspect[Profile]()
+	Inspect[Order]()
+	Inspect[OrderItem]()
 
 	t.Run("GetRelationships", func(t *testing.T) {
-		relationships := GetRelationships[User](context.Background())
+		relationships := GetRelationships[User]()
 
 		if len(relationships) == 0 {
 			t.Error("Expected User to have relationships")
@@ -208,7 +207,7 @@ func TestRelationshipAPIs(t *testing.T) {
 
 	t.Run("GetReferencedBy", func(t *testing.T) {
 		// Find what references Order
-		references := GetReferencedBy[Order](context.Background())
+		references := GetReferencedBy[Order]()
 
 		// User should reference Order through Orders field
 		var foundUser bool
@@ -236,10 +235,10 @@ func TestRelationshipAPIs(t *testing.T) {
 func TestERDGeneration(t *testing.T) {
 	// Reset and inspect our test types
 	instance.cache.Clear()
-	Inspect[User](context.Background())
-	Inspect[Profile](context.Background())
-	Inspect[Address](context.Background())
-	Inspect[Order](context.Background())
+	Inspect[User]()
+	Inspect[Profile]()
+	Inspect[Address]()
+	Inspect[Order]()
 
 	t.Run("MermaidERD", func(t *testing.T) {
 		erd := GenerateERD(ERDFormatMermaid)
@@ -332,7 +331,7 @@ func TestRelationshipEdgeCases(t *testing.T) {
 			Items []*Item
 		}
 
-		metadata := Inspect[Container](context.Background())
+		metadata := Inspect[Container]()
 
 		// Should detect relationship through slice of pointers
 		if len(metadata.Relationships) != 1 {
@@ -356,7 +355,7 @@ func TestRelationshipEdgeCases(t *testing.T) {
 			Services map[string]Service
 		}
 
-		metadata := Inspect[Registry](context.Background())
+		metadata := Inspect[Registry]()
 
 		// Should detect map relationship
 		if len(metadata.Relationships) != 1 {
@@ -381,7 +380,7 @@ func TestRelationshipEdgeCases(t *testing.T) {
 			Name string
 		}
 
-		metadata := Inspect[Extended](context.Background())
+		metadata := Inspect[Extended]()
 
 		// Should detect embedding relationship
 		var found bool

@@ -1,19 +1,18 @@
 package sentinel
 
 import (
-	"context"
 	"reflect"
 )
 
 // GetRelationships returns all relationships from a type to other types.
-func GetRelationships[T any](ctx context.Context) []TypeRelationship {
-	metadata := Inspect[T](ctx)
+func GetRelationships[T any]() []TypeRelationship {
+	metadata := Inspect[T]()
 	return metadata.Relationships
 }
 
 // GetReferencedBy returns all types that reference the given type.
 // This performs a reverse lookup across all cached metadata.
-func GetReferencedBy[T any](_ context.Context) []TypeRelationship {
+func GetReferencedBy[T any]() []TypeRelationship {
 	var zero T
 	t := reflect.TypeOf(zero)
 	targetName := getTypeName(t)

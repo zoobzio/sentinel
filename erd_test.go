@@ -1,7 +1,6 @@
 package sentinel
 
 import (
-	"context"
 	"strings"
 	"testing"
 )
@@ -29,9 +28,9 @@ func TestGenerateERD(t *testing.T) {
 	instance.cache.Clear()
 
 	// Inspect types to populate cache
-	Inspect[ERDTestUser](context.Background())
-	Inspect[ERDTestProfile](context.Background())
-	Inspect[ERDTestOrder](context.Background())
+	Inspect[ERDTestUser]()
+	Inspect[ERDTestProfile]()
+	Inspect[ERDTestOrder]()
 
 	t.Run("mermaid format", func(t *testing.T) {
 		erd := GenerateERD(ERDFormatMermaid)
@@ -93,9 +92,9 @@ func TestGenerateERDFromRoot(t *testing.T) {
 	instance.cache.Clear()
 
 	// Inspect all types to populate cache
-	Inspect[ERDTestUser](context.Background())
-	Inspect[ERDTestProfile](context.Background())
-	Inspect[ERDTestOrder](context.Background())
+	Inspect[ERDTestUser]()
+	Inspect[ERDTestProfile]()
+	Inspect[ERDTestOrder]()
 
 	t.Run("from user root", func(t *testing.T) {
 		erd := GenerateERDFromRoot[ERDTestUser](ERDFormatMermaid)

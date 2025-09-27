@@ -216,10 +216,10 @@ Requires Go 1.23 or later.
 
 ```go
 // Extract metadata for a type (cached permanently)
-func Inspect[T any](ctx context.Context) ModelMetadata
+func Inspect[T any]() ModelMetadata
 
 // Register a custom struct tag for extraction
-func Tag(ctx context.Context, tagName string)
+func Tag(tagName string)
 
 // Get all cached type names
 func Browse() []string
@@ -235,10 +235,10 @@ func Schema() map[string]ModelMetadata
 
 ```go
 // Get all relationships from a type
-func GetRelationships[T any](ctx context.Context) []TypeRelationship
+func GetRelationships[T any]() []TypeRelationship
 
 // Get all types that reference this type
-func GetReferencedBy[T any](ctx context.Context) []TypeRelationship
+func GetReferencedBy[T any]() []TypeRelationship
 ```
 
 ### ERD Functions
