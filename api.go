@@ -72,6 +72,31 @@ func Inspect[T any]() ModelMetadata {
 	return metadata
 }
 
+// Scan performs recursive inspection of a type and all related types within the same module.
+// Unlike Inspect which only processes a single type, Scan will follow relationships and
+// automatically inspect any related types that share the same module root.
+func Scan[T any]() ModelMetadata {
+	var zero T
+	t := reflect.TypeOf(zero)
+
+	// Sentinel only supports struct types
+	if t != nil && t.Kind() != reflect.Struct {
+		if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
+			t = t.Elem()
+		} else {
+			panic("sentinel: Scan only supports struct types")
+		}
+	}
+
+	// Use a visited map to prevent infinite loops from circular references
+	visited := make(map[string]bool)
+	instance.scanWithVisited(t, visited)
+
+	// Return the metadata for the root type
+	metadata, _ := instance.cache.Get(getTypeName(t))
+	return metadata
+}
+
 // Tag registers a struct tag to be extracted during metadata processing.
 // This can be called regardless of seal status.
 func Tag(tagName string) {

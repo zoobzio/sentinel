@@ -29,7 +29,6 @@ Sentinel provides runtime struct introspection with:
 package main
 
 import (
-    "context"
     "fmt"
     "github.com/zoobzio/sentinel"
 )
@@ -53,16 +52,14 @@ type Order struct {
 }
 
 func main() {
-    ctx := context.Background()
-    
     // Extract metadata (cached after first call)
-    metadata := sentinel.Inspect[User](ctx)
-    
+    metadata := sentinel.Inspect[User]()
+
     fmt.Printf("Type: %s\n", metadata.TypeName)
     fmt.Printf("Package: %s\n", metadata.PackageName)
     fmt.Printf("Fields: %d\n", len(metadata.Fields))
     fmt.Printf("Relationships: %d\n", len(metadata.Relationships))
-    
+
     // Discover relationships
     for _, rel := range metadata.Relationships {
         fmt.Printf("  %s -> %s (%s via field %s)\n",
@@ -84,12 +81,12 @@ type Product struct {
     Tags        []Tag   `json:"tags"`
 }
 
-metadata := sentinel.Inspect[Product](ctx)
+metadata := sentinel.Inspect[Product]()
 
 // Access field metadata
 for _, field := range metadata.Fields {
     fmt.Printf("Field: %s (%s)\n", field.Name, field.Type)
-    
+
     // Access all tags
     for tag, value := range field.Tags {
         fmt.Printf("  %s: %s\n", tag, value)
@@ -103,10 +100,10 @@ Sentinel automatically discovers relationships between types in the same package
 
 ```go
 // GetRelationships returns all types this type references
-relationships := sentinel.GetRelationships[User](ctx)
+relationships := sentinel.GetRelationships[User]()
 
 // GetReferencedBy returns all types that reference this type
-referencedBy := sentinel.GetReferencedBy[Profile](ctx)
+referencedBy := sentinel.GetReferencedBy[Profile]()
 
 // Relationship types:
 // - "reference": Direct struct field or pointer
@@ -114,6 +111,30 @@ referencedBy := sentinel.GetReferencedBy[Profile](ctx)
 // - "embedding": Anonymous embedded struct
 // - "map": Map with struct values
 ```
+
+## Recursive Scanning
+
+Use `Scan[T]()` to automatically inspect a type and all related types within the same module:
+
+```go
+// Inspect only inspects a single type
+metadata := sentinel.Inspect[User]()  // Only User is cached
+
+// Scan recursively inspects all related types in the same module
+metadata := sentinel.Scan[User]()
+// Now User, Profile, Order, and all transitively related types are cached
+
+// Check what was cached
+types := sentinel.Browse()
+fmt.Printf("Cached types: %v\n", types)
+// Output: [User Profile Order OrderItem Address ...]
+```
+
+**Module boundary detection:**
+- Uses first 3 path segments to determine module root
+- `github.com/user/myapp/models` and `github.com/user/myapp/api` → same module ✓
+- `github.com/user/myapp` and `github.com/lib/pq` → different modules ✗
+- External library types are never scanned
 
 ## ERD Generation
 
@@ -156,15 +177,15 @@ Register custom struct tags for extraction:
 
 ```go
 // Register custom tags
-sentinel.Tag(ctx, "custom")
-sentinel.Tag(ctx, "myapp")
+sentinel.Tag("custom")
+sentinel.Tag("myapp")
 
 type Model struct {
     Field string `custom:"value" myapp:"metadata"`
 }
 
 // Custom tags are now extracted
-metadata := sentinel.Inspect[Model](ctx)
+metadata := sentinel.Inspect[Model]()
 // metadata.Fields[0].Tags["custom"] == "value"
 // metadata.Fields[0].Tags["myapp"] == "metadata"
 ```
@@ -175,10 +196,18 @@ Sentinel uses permanent caching - struct metadata is extracted once and cached f
 
 ```go
 // First call: extracts and caches metadata
-metadata1 := sentinel.Inspect[User](ctx)  // ~microseconds
+metadata1 := sentinel.Inspect[User]()  // ~microseconds
 
 // Subsequent calls: returns from cache
-metadata2 := sentinel.Inspect[User](ctx)  // ~nanoseconds
+metadata2 := sentinel.Inspect[User]()  // ~nanoseconds
+
+// Scan entire module graph once
+sentinel.Scan[User]()  // Caches User + all related types in module
+
+// All subsequent lookups are instant
+userMeta := sentinel.Inspect[User]()      // ~nanoseconds
+profileMeta := sentinel.Inspect[Profile]() // ~nanoseconds
+orderMeta := sentinel.Inspect[Order]()     // ~nanoseconds
 ```
 
 ## Why sentinel?
@@ -215,8 +244,11 @@ Requires Go 1.23 or later.
 ### Core Functions
 
 ```go
-// Extract metadata for a type (cached permanently)
+// Extract metadata for a single type (cached permanently)
 func Inspect[T any]() ModelMetadata
+
+// Recursively scan a type and all related types in the same module
+func Scan[T any]() ModelMetadata
 
 // Register a custom struct tag for extraction
 func Tag(tagName string)
@@ -265,7 +297,7 @@ type Form struct {
     Age      int    `validate:"min=18,max=120"`
 }
 
-metadata := sentinel.Inspect[Form](ctx)
+metadata := sentinel.Inspect[Form]()
 for _, field := range metadata.Fields {
     if rules, ok := field.Tags["validate"]; ok {
         fmt.Printf("%s: %s\n", field.Name, rules)
@@ -282,7 +314,7 @@ type Model struct {
     Name      string `db:"name,index"`
 }
 
-metadata := sentinel.Inspect[Model](ctx)
+metadata := sentinel.Inspect[Model]()
 for _, field := range metadata.Fields {
     if dbTag, ok := field.Tags["db"]; ok {
         fmt.Printf("Column: %s -> %s\n", field.Name, dbTag)
@@ -299,17 +331,20 @@ type APIRequest struct {
     Data   any    `json:"data,omitempty"`
 }
 
-metadata := sentinel.Inspect[APIRequest](ctx)
+metadata := sentinel.Inspect[APIRequest]()
 // Use metadata to generate OpenAPI specs, documentation, etc.
 ```
 
 ### Export complete schema
 
 ```go
-// Inspect various types throughout your application
-sentinel.Inspect[User](ctx)
-sentinel.Inspect[Product](ctx) 
-sentinel.Inspect[Order](ctx)
+// Option 1: Inspect types individually
+sentinel.Inspect[User]()
+sentinel.Inspect[Product]()
+sentinel.Inspect[Order]()
+
+// Option 2: Scan entire module from root type
+sentinel.Scan[User]()  // Automatically caches User + all related types
 
 // Get the complete schema all at once
 schema := sentinel.Schema()

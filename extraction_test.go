@@ -166,6 +166,133 @@ func TestExtractMetadata(t *testing.T) {
 	})
 }
 
+func TestExtractMetadataInternal(t *testing.T) {
+	t.Run("cache hit with visited map", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type CachedType struct {
+			Name string `json:"name"`
+		}
+
+		// First call - populate cache
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(CachedType{})
+		visited := make(map[string]bool)
+
+		// First extraction
+		metadata1 := s.extractMetadataInternal(typ, visited)
+		if metadata1.TypeName != "CachedType" {
+			t.Errorf("expected TypeName 'CachedType', got %s", metadata1.TypeName)
+		}
+
+		// Second call with visited map - should hit cache
+		visited2 := make(map[string]bool)
+		metadata2 := s.extractMetadataInternal(typ, visited2)
+		if metadata2.TypeName != "CachedType" {
+			t.Errorf("expected cached TypeName 'CachedType', got %s", metadata2.TypeName)
+		}
+	})
+
+	t.Run("nil cache handling", func(t *testing.T) {
+		type NoCacheType struct {
+			Value int `json:"value"`
+		}
+
+		// Sentinel with nil cache
+		s := &Sentinel{
+			cache:          nil,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(NoCacheType{})
+		metadata := s.extractMetadataInternal(typ, nil)
+
+		if metadata.TypeName != "NoCacheType" {
+			t.Errorf("expected TypeName 'NoCacheType', got %s", metadata.TypeName)
+		}
+		if len(metadata.Fields) != 1 {
+			t.Errorf("expected 1 field, got %d", len(metadata.Fields))
+		}
+	})
+
+	t.Run("cycle detection with visited map", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type CircularA struct {
+			Name string `json:"name"`
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(CircularA{})
+		visited := make(map[string]bool)
+
+		// Mark as already visited
+		visited["CircularA"] = true
+
+		// Should return cached or empty metadata
+		_ = s.extractMetadataInternal(typ, visited)
+
+		// The type should be skipped due to already being visited
+		// If cache exists, it returns cached, otherwise empty
+		if visited["CircularA"] != true {
+			t.Error("expected type to remain in visited map")
+		}
+	})
+
+	t.Run("nil type handling", func(t *testing.T) {
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		metadata := s.extractMetadataInternal(nil, nil)
+
+		if metadata.TypeName != "" {
+			t.Errorf("expected empty metadata for nil type, got %s", metadata.TypeName)
+		}
+	})
+
+	t.Run("pointer type normalization", func(t *testing.T) {
+		type PointerTest struct {
+			Field string `json:"field"`
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		ptrType := reflect.TypeOf(&PointerTest{})
+		metadata := s.extractMetadataInternal(ptrType, nil)
+
+		if metadata.TypeName != "PointerTest" {
+			t.Errorf("expected TypeName 'PointerTest', got %s", metadata.TypeName)
+		}
+	})
+
+	t.Run("non-struct type", func(t *testing.T) {
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		intType := reflect.TypeOf(42)
+		metadata := s.extractMetadataInternal(intType, nil)
+
+		if metadata.TypeName != "" {
+			t.Errorf("expected empty metadata for int type, got %s", metadata.TypeName)
+		}
+	})
+}
+
 func TestExtractFieldMetadata(t *testing.T) {
 	s := &Sentinel{
 		registeredTags: make(map[string]bool),

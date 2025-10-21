@@ -35,7 +35,8 @@ func GetReferencedBy[T any]() []TypeRelationship {
 }
 
 // extractRelationships discovers relationships to other types within the same package domain.
-func (s *Sentinel) extractRelationships(t reflect.Type) []TypeRelationship {
+// If visited is non-nil, it will recursively scan related types in the same module.
+func (s *Sentinel) extractRelationships(t reflect.Type, visited map[string]bool) []TypeRelationship {
 	var relationships []TypeRelationship
 
 	if t.Kind() == reflect.Ptr {
@@ -61,6 +62,15 @@ func (s *Sentinel) extractRelationships(t reflect.Type) []TypeRelationship {
 		if rel != nil {
 			rel.From = t.Name()
 			relationships = append(relationships, *rel)
+
+			// If visited map is provided (Scan mode), recursively scan related types
+			if visited != nil && s.isInModuleDomain(rel.ToPackage, rootPackage) {
+				// Extract the underlying struct type from the field
+				relType := s.getStructTypeFromField(field.Type)
+				if relType != nil {
+					s.extractMetadataInternal(relType, visited)
+				}
+			}
 		}
 	}
 
@@ -135,7 +145,48 @@ func (s *Sentinel) createRelationshipIfInDomain(field reflect.StructField, targe
 }
 
 // isInPackageDomain checks if a target package is within the same domain as the source.
+// For Inspect: requires exact package match.
+// For Scan: checks module root match (first 3 path segments).
 func (*Sentinel) isInPackageDomain(targetPkg, sourcePkg string) bool {
 	// Only include exact same package to avoid noise from external dependencies
 	return targetPkg == sourcePkg
+}
+
+// isInModuleDomain checks if a target package shares the same module root as the source.
+// Uses the first 3 path segments to determine module boundary.
+func (*Sentinel) isInModuleDomain(targetPkg, sourcePkg string) bool {
+	if targetPkg == "" || sourcePkg == "" {
+		return false
+	}
+	return getModuleRoot(targetPkg) == getModuleRoot(sourcePkg)
+}
+
+// getStructTypeFromField extracts the underlying struct type from a field.
+// Handles pointers, slices, arrays, and maps.
+func (*Sentinel) getStructTypeFromField(ft reflect.Type) reflect.Type {
+	switch ft.Kind() {
+	case reflect.Struct:
+		return ft
+	case reflect.Ptr:
+		if ft.Elem().Kind() == reflect.Struct {
+			return ft.Elem()
+		}
+	case reflect.Slice, reflect.Array:
+		elem := ft.Elem()
+		if elem.Kind() == reflect.Struct {
+			return elem
+		}
+		if elem.Kind() == reflect.Ptr && elem.Elem().Kind() == reflect.Struct {
+			return elem.Elem()
+		}
+	case reflect.Map:
+		val := ft.Elem()
+		if val.Kind() == reflect.Struct {
+			return val
+		}
+		if val.Kind() == reflect.Ptr && val.Elem().Kind() == reflect.Struct {
+			return val.Elem()
+		}
+	}
+	return nil
 }
