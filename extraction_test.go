@@ -247,6 +247,67 @@ func TestExtractMetadataInternal(t *testing.T) {
 		}
 	})
 
+	t.Run("visited but not cached", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type UncachedType struct {
+			Value string `json:"value"`
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(UncachedType{})
+		visited := make(map[string]bool)
+
+		// Mark as visited but don't cache it
+		visited["UncachedType"] = true
+
+		// Should return empty metadata since it's visited but not in cache
+		metadata := s.extractMetadataInternal(typ, visited)
+
+		if metadata.TypeName != "" {
+			t.Errorf("expected empty metadata for visited but uncached type, got %s", metadata.TypeName)
+		}
+	})
+
+	t.Run("cached with visited map triggers relationship scan", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type Related struct {
+			Value string
+		}
+		type Root struct {
+			Related *Related
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		rootType := reflect.TypeOf(Root{})
+
+		// First call - populate cache without visited map (Inspect mode)
+		_ = s.extractMetadataInternal(rootType, nil)
+
+		// Related should NOT be in cache yet
+		if _, exists := instance.cache.Get("Related"); exists {
+			t.Error("Related should not be cached after Inspect mode")
+		}
+
+		// Second call with visited map (Scan mode) - should trigger relationship scan
+		visited := make(map[string]bool)
+		_ = s.extractMetadataInternal(rootType, visited)
+
+		// Now Related should be in cache
+		if _, exists := instance.cache.Get("Related"); !exists {
+			t.Error("Related should be cached after Scan mode on cached type")
+		}
+	})
+
 	t.Run("nil type handling", func(t *testing.T) {
 		s := &Sentinel{
 			cache:          instance.cache,

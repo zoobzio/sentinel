@@ -20,7 +20,6 @@ Sentinel provides runtime struct introspection with:
 - **Comprehensive metadata extraction** from struct fields and tags
 - **Type relationship discovery** between structs in your domain
 - **Permanent caching** for optimal performance
-- **ERD generation** in Mermaid and GraphViz formats
 - **Zero dependencies** - just the Go standard library
 
 ## Quick Start
@@ -136,41 +135,6 @@ fmt.Printf("Cached types: %v\n", types)
 - `github.com/user/myapp` and `github.com/lib/pq` → different modules ✗
 - External library types are never scanned
 
-## ERD Generation
-
-Generate Entity Relationship Diagrams from your types:
-
-```go
-// Generate Mermaid diagram from all cached types
-mermaidDiagram := sentinel.GenerateERD(sentinel.ERDFormatMermaid)
-
-// Generate DOT diagram for GraphViz
-dotDiagram := sentinel.GenerateERD(sentinel.ERDFormatDOT)
-
-// Generate diagram from specific root type (includes only reachable types)
-userERD := sentinel.GenerateERDFromRoot[User](sentinel.ERDFormatMermaid)
-```
-
-Example Mermaid output:
-```mermaid
-erDiagram
-    User {
-        string ID
-        string Name
-        string Email
-    }
-    Profile {
-        string Bio
-        string Avatar
-    }
-    Order {
-        string ID
-        float64 Total
-    }
-    User ||--o{ Profile : "has profile"
-    User ||--o{ Order : "has orders"
-```
-
 ## Custom Tag Registration
 
 Register custom struct tags for extraction:
@@ -216,7 +180,6 @@ orderMeta := sentinel.Inspect[Order]()     // ~nanoseconds
 - **Performance focused**: Permanent caching with minimal overhead
 - **Type-safe**: Generic API prevents runtime type errors
 - **Relationship aware**: Understands connections between your types
-- **Visualization ready**: Generate ERDs for documentation
 - **Zero dependencies**: No external packages required
 - **Well tested**: 92%+ test coverage
 
@@ -271,16 +234,6 @@ func GetRelationships[T any]() []TypeRelationship
 
 // Get all types that reference this type
 func GetReferencedBy[T any]() []TypeRelationship
-```
-
-### ERD Functions
-
-```go
-// Generate ERD from all cached types
-func GenerateERD(format ERDFormat) string
-
-// Generate ERD starting from a root type
-func GenerateERDFromRoot[T any](format ERDFormat) string
 
 // Get relationship graph data
 func GetRelationshipGraph() map[string][]TypeRelationship

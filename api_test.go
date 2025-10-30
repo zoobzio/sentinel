@@ -530,3 +530,36 @@ func TestEdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func TestScanEdgeCases(t *testing.T) {
+	t.Run("panic on non-struct type", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic for non-struct type")
+			}
+		}()
+
+		Scan[string]() // Should panic
+	})
+
+	t.Run("panic on slice type", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("expected panic for slice type")
+			}
+		}()
+
+		Scan[[]TestUser]() // Should panic
+	})
+
+	t.Run("pointer type normalization", func(t *testing.T) {
+		instance.cache.Clear()
+
+		// Scan with pointer type should normalize to struct
+		metadata := Scan[*TestUser]()
+
+		if metadata.TypeName != "TestUser" {
+			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
+		}
+	})
+}

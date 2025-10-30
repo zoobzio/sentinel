@@ -2,7 +2,6 @@ package sentinel
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 )
 
@@ -230,93 +229,6 @@ func TestRelationshipAPIs(t *testing.T) {
 		// In real code, these would be defined at package level.
 		// This is a limitation of Go's type system in test functions.
 		t.Skip("Circular references require package-level type definitions")
-	})
-}
-
-func TestERDGeneration(t *testing.T) {
-	// Reset and inspect our test types
-	instance.cache.Clear()
-	Inspect[User]()
-	Inspect[Profile]()
-	Inspect[Address]()
-	Inspect[Order]()
-
-	t.Run("MermaidERD", func(t *testing.T) {
-		erd := GenerateERD(ERDFormatMermaid)
-
-		// Should start with erDiagram
-		if !strings.HasPrefix(erd, "erDiagram") {
-			t.Error("Expected Mermaid ERD to start with 'erDiagram'")
-		}
-
-		// Should contain entity definitions
-		if !strings.Contains(erd, "User {") {
-			t.Error("Expected User entity definition")
-		}
-		if !strings.Contains(erd, "Profile {") {
-			t.Error("Expected Profile entity definition")
-		}
-
-		// Should contain relationships
-		if !strings.Contains(erd, "User ||--|| Profile") {
-			t.Error("Expected User-Profile relationship")
-		}
-		if !strings.Contains(erd, "User ||--o{ Order") {
-			t.Error("Expected User-Order collection relationship")
-		}
-	})
-
-	t.Run("DOTERD", func(t *testing.T) {
-		erd := GenerateERD(ERDFormatDOT)
-
-		// Should be a digraph
-		if !strings.HasPrefix(erd, "digraph ERD") {
-			t.Error("Expected DOT ERD to start with 'digraph ERD'")
-		}
-
-		// Should contain node definitions
-		if !strings.Contains(erd, "User [label=") {
-			t.Error("Expected User node definition")
-		}
-
-		// Should contain edges
-		if !strings.Contains(erd, "User -> Profile") {
-			t.Error("Expected User->Profile edge")
-		}
-	})
-
-	t.Run("ERDFromRoot", func(t *testing.T) {
-		// Generate ERD starting from User only
-		erd := GenerateERDFromRoot[User](ERDFormatMermaid)
-
-		// Should include User and types reachable from User
-		if !strings.Contains(erd, "User {") {
-			t.Error("Expected User in ERD")
-		}
-		if !strings.Contains(erd, "Profile {") {
-			t.Error("Expected Profile in ERD (reachable from User)")
-		}
-		if !strings.Contains(erd, "Order {") {
-			t.Error("Expected Order in ERD (reachable from User)")
-		}
-
-		// OrderItem is not directly reachable from User (would need to inspect Order first)
-		// So it might not be included unless Order was already inspected
-	})
-
-	t.Run("RelationshipGraph", func(t *testing.T) {
-		graph := GetRelationshipGraph()
-
-		// Should have entries for inspected types
-		if _, ok := graph["User"]; !ok {
-			t.Error("Expected User in relationship graph")
-		}
-
-		// User should have relationships
-		userRels := graph["User"]
-		if len(userRels) == 0 {
-			t.Error("Expected User to have relationships in graph")
-		}
 	})
 }
 
@@ -880,6 +792,135 @@ func TestExtractRelationship(t *testing.T) {
 
 		if !found {
 			t.Error("expected embedding relationship for Settings")
+		}
+	})
+}
+
+func TestExtractRelationshipsScanMode(t *testing.T) {
+	instance.cache.Clear()
+
+	t.Run("Scan mode recursively extracts relationships", func(t *testing.T) {
+		type Inner struct {
+			Value string
+		}
+		type Outer struct {
+			Inner *Inner
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(Outer{})
+		visited := make(map[string]bool)
+
+		// Extract relationships in Scan mode (with visited map)
+		relationships := s.extractRelationships(typ, visited)
+
+		// Should find the relationship to Inner
+		if len(relationships) != 1 {
+			t.Fatalf("expected 1 relationship, got %d", len(relationships))
+		}
+
+		// Inner should have been extracted recursively
+		if !visited["Inner"] {
+			t.Error("expected Inner to be visited during Scan mode")
+		}
+
+		// Inner should be cached
+		if _, exists := instance.cache.Get("Inner"); !exists {
+			t.Error("expected Inner to be cached during Scan mode")
+		}
+	})
+
+	t.Run("Inspect mode does not recurse", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type InnerB struct {
+			Value string
+		}
+		type OuterB struct {
+			Inner *InnerB
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(OuterB{})
+
+		// Extract relationships in Inspect mode (nil visited map)
+		relationships := s.extractRelationships(typ, nil)
+
+		// Should find the relationship to InnerB
+		if len(relationships) != 1 {
+			t.Fatalf("expected 1 relationship, got %d", len(relationships))
+		}
+
+		// InnerB should NOT be cached in Inspect mode
+		if _, exists := instance.cache.Get("InnerB"); exists {
+			t.Error("InnerB should not be cached in Inspect mode")
+		}
+	})
+
+	t.Run("Scan mode with nil relType", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type OuterC struct {
+			// Interface field - won't have a struct type
+			Field interface{}
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(OuterC{})
+		visited := make(map[string]bool)
+
+		// Should handle nil relType gracefully
+		relationships := s.extractRelationships(typ, visited)
+
+		// No relationships for interface fields
+		if len(relationships) != 0 {
+			t.Fatalf("expected 0 relationships for interface field, got %d", len(relationships))
+		}
+	})
+
+	t.Run("Scan mode with different module domain", func(t *testing.T) {
+		instance.cache.Clear()
+
+		// Create a type that would have a relationship but in different module
+		// Since we can't actually import external types in tests, we'll simulate
+		// by testing that the isInModuleDomain check works
+		type LocalType struct {
+			Value string
+		}
+		type Container struct {
+			Local *LocalType
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(Container{})
+		visited := make(map[string]bool)
+
+		// Extract relationships - LocalType is in same module so should recurse
+		relationships := s.extractRelationships(typ, visited)
+
+		if len(relationships) != 1 {
+			t.Fatalf("expected 1 relationship, got %d", len(relationships))
+		}
+
+		// LocalType should be cached since it's in same module
+		if _, exists := instance.cache.Get("LocalType"); !exists {
+			t.Error("LocalType should be cached in same module domain")
 		}
 	})
 }
