@@ -1,9 +1,14 @@
 package sentinel
 
 import (
+	"errors"
 	"reflect"
+	"runtime/debug"
 	"sync"
 )
+
+// ErrNotStruct is returned when a non-struct type is passed to Try* functions.
+var ErrNotStruct = errors.New("sentinel: only struct types are supported")
 
 // Global singleton instance.
 var instance *Sentinel
@@ -14,8 +19,17 @@ func init() {
 	instance = &Sentinel{
 		cache:          NewPermanentCache(),
 		registeredTags: make(map[string]bool),
-		config:         Config{StrictMode: false},
+		modulePath:     detectModulePath(),
 	}
+}
+
+// detectModulePath returns the module path from build info, or empty string if unavailable.
+func detectModulePath() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return ""
+	}
+	return info.Main.Path
 }
 
 // Sentinel is the main type intelligence orchestrator.
@@ -32,18 +46,23 @@ type Sentinel struct {
 	// Tag registry mutex
 	tagMutex sync.RWMutex
 
-	// Configuration
-	config Config
-}
-
-// Config holds configuration for a Sentinel instance.
-type Config struct {
-	// StrictMode causes policy violations to return errors instead of warnings
-	StrictMode bool
+	// Module path from build info (e.g., "github.com/user/repo")
+	modulePath string
 }
 
 // Inspect returns comprehensive metadata for a type.
+// Panics if T is not a struct type.
 func Inspect[T any]() ModelMetadata {
+	metadata, err := TryInspect[T]()
+	if err != nil {
+		panic(err)
+	}
+	return metadata
+}
+
+// TryInspect returns comprehensive metadata for a type.
+// Returns ErrNotStruct if T is not a struct type.
+func TryInspect[T any]() (ModelMetadata, error) {
 	var zero T
 	t := reflect.TypeOf(zero)
 
@@ -52,7 +71,7 @@ func Inspect[T any]() ModelMetadata {
 		if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
 			t = t.Elem()
 		} else {
-			panic("sentinel: Inspect only supports struct types")
+			return ModelMetadata{}, ErrNotStruct
 		}
 	}
 
@@ -60,7 +79,7 @@ func Inspect[T any]() ModelMetadata {
 
 	// Check cache first
 	if cached, exists := instance.cache.Get(typeName); exists {
-		return cached
+		return cached, nil
 	}
 
 	// Extract metadata
@@ -69,13 +88,26 @@ func Inspect[T any]() ModelMetadata {
 	// Store in cache
 	instance.cache.Set(typeName, metadata)
 
-	return metadata
+	return metadata, nil
 }
 
 // Scan performs recursive inspection of a type and all related types within the same module.
 // Unlike Inspect which only processes a single type, Scan will follow relationships and
 // automatically inspect any related types that share the same module root.
+// Panics if T is not a struct type.
 func Scan[T any]() ModelMetadata {
+	metadata, err := TryScan[T]()
+	if err != nil {
+		panic(err)
+	}
+	return metadata
+}
+
+// TryScan performs recursive inspection of a type and all related types within the same module.
+// Unlike TryInspect which only processes a single type, TryScan will follow relationships and
+// automatically inspect any related types that share the same module root.
+// Returns ErrNotStruct if T is not a struct type.
+func TryScan[T any]() (ModelMetadata, error) {
 	var zero T
 	t := reflect.TypeOf(zero)
 
@@ -84,7 +116,7 @@ func Scan[T any]() ModelMetadata {
 		if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
 			t = t.Elem()
 		} else {
-			panic("sentinel: Scan only supports struct types")
+			return ModelMetadata{}, ErrNotStruct
 		}
 	}
 
@@ -94,7 +126,7 @@ func Scan[T any]() ModelMetadata {
 
 	// Return the metadata for the root type
 	metadata, _ := instance.cache.Get(getTypeName(t))
-	return metadata
+	return metadata, nil
 }
 
 // Tag registers a struct tag to be extracted during metadata processing.
@@ -128,4 +160,14 @@ func Schema() map[string]ModelMetadata {
 		}
 	}
 	return schema
+}
+
+// Reset clears the cache and tag registry.
+// This is primarily useful for test isolation.
+func Reset() {
+	instance.tagMutex.Lock()
+	defer instance.tagMutex.Unlock()
+
+	instance.cache = NewPermanentCache()
+	instance.registeredTags = make(map[string]bool)
 }

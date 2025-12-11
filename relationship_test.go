@@ -417,28 +417,6 @@ func TestScan(t *testing.T) {
 	})
 }
 
-func TestGetModuleRoot(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"github.com/user/repo", "github.com/user/repo"},
-		{"github.com/user/repo/internal/models", "github.com/user/repo"},
-		{"github.com/user/repo/pkg/api/v1", "github.com/user/repo"},
-		{"google.golang.org/grpc/codes", "google.golang.org/grpc/codes"},        // 3 segments total
-		{"google.golang.org/grpc/codes/status", "google.golang.org/grpc/codes"}, // >3 segments
-		{"std/fmt", "std/fmt"},
-		{"", ""},
-	}
-
-	for _, tt := range tests {
-		result := getModuleRoot(tt.input)
-		if result != tt.expected {
-			t.Errorf("getModuleRoot(%q) = %q, want %q", tt.input, result, tt.expected)
-		}
-	}
-}
-
 func TestCreateRelationshipIfInDomain(t *testing.T) {
 	s := &Sentinel{
 		cache:          instance.cache,
@@ -482,36 +460,71 @@ func TestCreateRelationshipIfInDomain(t *testing.T) {
 }
 
 func TestIsInModuleDomain(t *testing.T) {
-	s := &Sentinel{}
+	t.Run("no module path returns false", func(t *testing.T) {
+		s := &Sentinel{} // No modulePath - graceful degradation
 
-	t.Run("empty package strings", func(t *testing.T) {
-		// Both empty
-		if s.isInModuleDomain("", "") {
-			t.Error("expected false for both empty strings")
+		// Without module path, always returns false
+		if s.isInModuleDomain("github.com/user/repo/models") {
+			t.Error("expected false when modulePath is empty")
 		}
+	})
 
-		// Target empty
-		if s.isInModuleDomain("", "github.com/test/pkg") {
+	t.Run("empty target package", func(t *testing.T) {
+		s := &Sentinel{modulePath: "github.com/test/repo"}
+
+		if s.isInModuleDomain("") {
 			t.Error("expected false for empty target package")
 		}
+	})
 
-		// Source empty
-		if s.isInModuleDomain("github.com/test/pkg", "") {
-			t.Error("expected false for empty source package")
+	t.Run("package within module", func(t *testing.T) {
+		s := &Sentinel{modulePath: "github.com/zoobzio/sentinel"}
+
+		if !s.isInModuleDomain("github.com/zoobzio/sentinel/internal/models") {
+			t.Error("expected true for package within module")
+		}
+
+		// Exact module path
+		if !s.isInModuleDomain("github.com/zoobzio/sentinel") {
+			t.Error("expected true for exact module path")
 		}
 	})
 
-	t.Run("same module", func(t *testing.T) {
-		if !s.isInModuleDomain("github.com/user/repo/internal/models", "github.com/user/repo/pkg/api") {
-			t.Error("expected true for same module root")
+	t.Run("package outside module", func(t *testing.T) {
+		s := &Sentinel{modulePath: "github.com/zoobzio/sentinel"}
+
+		if s.isInModuleDomain("github.com/other/repo") {
+			t.Error("expected false for package outside module")
 		}
 	})
 
-	t.Run("different modules", func(t *testing.T) {
-		if s.isInModuleDomain("github.com/user/repo1", "github.com/user/repo2") {
-			t.Error("expected false for different module roots")
+	t.Run("vanity import paths", func(t *testing.T) {
+		s := &Sentinel{modulePath: "go.uber.org/zap"}
+
+		if !s.isInModuleDomain("go.uber.org/zap/zapcore") {
+			t.Error("expected true for vanity import subpackage")
+		}
+
+		if s.isInModuleDomain("github.com/uber-go/zap") {
+			t.Error("expected false for non-vanity path")
 		}
 	})
+}
+
+func TestDetectModulePath(t *testing.T) {
+	// This test verifies that detectModulePath returns a valid module path
+	// when running in a proper Go module context (which tests always do)
+	path := detectModulePath()
+
+	// When running tests, build info should be available
+	if path == "" {
+		t.Skip("build info not available in this test environment")
+	}
+
+	// Should be our module path
+	if path != "github.com/zoobzio/sentinel" {
+		t.Errorf("expected module path 'github.com/zoobzio/sentinel', got %q", path)
+	}
 }
 
 func TestGetStructTypeFromField(t *testing.T) {
@@ -810,6 +823,7 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 		s := &Sentinel{
 			cache:          instance.cache,
 			registeredTags: instance.registeredTags,
+			modulePath:     detectModulePath(),
 		}
 
 		typ := reflect.TypeOf(Outer{})
@@ -906,6 +920,7 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 		s := &Sentinel{
 			cache:          instance.cache,
 			registeredTags: instance.registeredTags,
+			modulePath:     detectModulePath(),
 		}
 
 		typ := reflect.TypeOf(Container{})

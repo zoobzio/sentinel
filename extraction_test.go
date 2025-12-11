@@ -286,6 +286,7 @@ func TestExtractMetadataInternal(t *testing.T) {
 		s := &Sentinel{
 			cache:          instance.cache,
 			registeredTags: instance.registeredTags,
+			modulePath:     detectModulePath(),
 		}
 
 		rootType := reflect.TypeOf(Root{})

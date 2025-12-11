@@ -1,4 +1,4 @@
-.PHONY: test bench bench-all lint coverage clean all help test-examples run-example
+.PHONY: test test-integration bench lint coverage clean all help check ci
 
 # Default target
 all: test lint
@@ -8,28 +8,40 @@ help:
 	@echo "sentinel Development Commands"
 	@echo "============================"
 	@echo ""
-	@echo "Testing & Quality:"
-	@echo "  make test         - Run all tests with race detector"
-	@echo "  make bench        - Run benchmarks"
-	@echo "  make lint         - Run linters"
-	@echo "  make lint-fix     - Run linters with auto-fix"
-	@echo "  make coverage     - Generate coverage report (HTML)"
-	@echo "  make check        - Run tests and lint (quick check)"
+	@echo "Testing:"
+	@echo "  make test             - Run unit tests with race detector"
+	@echo "  make test-integration - Run integration tests"
+	@echo "  make test-all         - Run all tests (unit + integration)"
+	@echo "  make bench            - Run benchmarks"
+	@echo ""
+	@echo "Quality:"
+	@echo "  make lint             - Run linters"
+	@echo "  make lint-fix         - Run linters with auto-fix"
+	@echo "  make coverage         - Generate coverage report (HTML)"
+	@echo "  make check            - Run tests and lint (quick check)"
 	@echo ""
 	@echo "Other:"
-	@echo "  make install-tools- Install required development tools"
-	@echo "  make clean        - Clean generated files"
-	@echo "  make all          - Run tests and lint (default)"
+	@echo "  make install-tools    - Install required development tools"
+	@echo "  make clean            - Clean generated files"
+	@echo "  make ci               - Run full CI simulation"
 
-# Run tests with race detector
+# Run unit tests with race detector
 test:
-	@echo "Running tests..."
+	@echo "Running unit tests..."
 	@go test -v -race ./...
+
+# Run integration tests
+test-integration:
+	@echo "Running integration tests..."
+	@go test -v -race ./testing/integration/...
+
+# Run all tests
+test-all: test test-integration
 
 # Run benchmarks
 bench:
 	@echo "Running benchmarks..."
-	@go test -bench=. -benchmem -benchtime=1s .
+	@go test -bench=. -benchmem -benchtime=1s ./testing/benchmarks/...
 
 # Run linters
 lint:
@@ -67,5 +79,5 @@ check: test lint
 	@echo "All checks passed!"
 
 # CI simulation - what CI runs
-ci: clean lint test coverage bench
+ci: clean lint test-all coverage bench
 	@echo "CI simulation complete!"

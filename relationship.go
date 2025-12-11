@@ -2,6 +2,7 @@ package sentinel
 
 import (
 	"reflect"
+	"strings"
 )
 
 // GetRelationships returns all relationships from a type to other types.
@@ -64,7 +65,7 @@ func (s *Sentinel) extractRelationships(t reflect.Type, visited map[string]bool)
 			relationships = append(relationships, *rel)
 
 			// If visited map is provided (Scan mode), recursively scan related types
-			if visited != nil && s.isInModuleDomain(rel.ToPackage, rootPackage) {
+			if visited != nil && s.isInModuleDomain(rel.ToPackage) {
 				// Extract the underlying struct type from the field
 				relType := s.getStructTypeFromField(field.Type)
 				if relType != nil {
@@ -152,13 +153,14 @@ func (*Sentinel) isInPackageDomain(targetPkg, sourcePkg string) bool {
 	return targetPkg == sourcePkg
 }
 
-// isInModuleDomain checks if a target package shares the same module root as the source.
-// Uses the first 3 path segments to determine module boundary.
-func (*Sentinel) isInModuleDomain(targetPkg, sourcePkg string) bool {
-	if targetPkg == "" || sourcePkg == "" {
+// isInModuleDomain checks if a target package belongs to the same module.
+// Uses the module path from debug.ReadBuildInfo() for accurate detection.
+// Returns false if build info is unavailable (graceful degradation).
+func (s *Sentinel) isInModuleDomain(targetPkg string) bool {
+	if targetPkg == "" || s.modulePath == "" {
 		return false
 	}
-	return getModuleRoot(targetPkg) == getModuleRoot(sourcePkg)
+	return strings.HasPrefix(targetPkg, s.modulePath)
 }
 
 // getStructTypeFromField extracts the underlying struct type from a field.

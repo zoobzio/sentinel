@@ -33,31 +33,6 @@ func getTypeName(t reflect.Type) string {
 	return t.Name()
 }
 
-// getModuleRoot extracts the module root from a package path.
-// It uses the first 3 path segments (e.g., "github.com/user/repo").
-// This allows us to distinguish user modules from external libraries.
-func getModuleRoot(pkgPath string) string {
-	if pkgPath == "" {
-		return ""
-	}
-
-	// Find position of the 3rd slash (end of 3rd segment)
-	slashCount := 0
-
-	for i := 0; i < len(pkgPath); i++ {
-		if pkgPath[i] == '/' {
-			slashCount++
-			if slashCount == 3 {
-				// Found 3rd slash, return everything before it
-				return pkgPath[:i]
-			}
-		}
-	}
-
-	// Less than 3 slashes (≤3 segments), return the whole path
-	return pkgPath
-}
-
 // TypeRelationship represents a relationship between two types.
 type TypeRelationship struct {
 	From      string `json:"from"`       // Source type name

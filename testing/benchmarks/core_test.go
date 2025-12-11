@@ -1,8 +1,10 @@
-package sentinel
+package benchmarks
 
 import (
 	"testing"
 	"time"
+
+	"github.com/zoobzio/sentinel"
 )
 
 // Benchmark struct with various field types and tags.
@@ -29,49 +31,34 @@ type BenchmarkSimpleStruct struct {
 	Value string `json:"value"`
 }
 
-// Setup for benchmarks.
-func init() {
-	// Set up configuration for benchmarks
-	instance.cache.Clear()
-}
-
 func BenchmarkInspectSimple(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkSimpleStruct]()
+		_ = sentinel.Inspect[BenchmarkSimpleStruct]()
 	}
 }
 
 func BenchmarkInspectComplex(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = sentinel.Inspect[BenchmarkStruct]()
 	}
 }
 
 func BenchmarkInspectCached(b *testing.B) {
 	// Pre-populate cache
-	_ = Inspect[BenchmarkStruct]()
+	_ = sentinel.Inspect[BenchmarkStruct]()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = sentinel.Inspect[BenchmarkStruct]()
 	}
 }
 
 func BenchmarkTagRegistration(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Tag("custom")
-	}
-}
-
-func BenchmarkPolicyApplication(b *testing.B) {
-	// Note: With global singleton, policies would need to be applied differently
-	// This benchmark is now just measuring base performance
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		sentinel.Tag("benchcustom")
 	}
 }
 
@@ -79,15 +66,16 @@ func BenchmarkConcurrentInspect(b *testing.B) {
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_ = Inspect[BenchmarkStruct]()
+			_ = sentinel.Inspect[BenchmarkStruct]()
 		}
 	})
 }
+
 func BenchmarkInspectMemory(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = Inspect[BenchmarkStruct]()
+		_ = sentinel.Inspect[BenchmarkStruct]()
 	}
 }
