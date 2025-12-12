@@ -809,6 +809,42 @@ func TestExtractRelationship(t *testing.T) {
 	})
 }
 
+func TestExtractRelationshipsEdgeCases(t *testing.T) {
+	t.Run("pointer to non-struct returns empty", func(t *testing.T) {
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		// Create a pointer to int type
+		var intPtr *int
+		typ := reflect.TypeOf(intPtr)
+
+		// Should return empty slice after dereferencing pointer to non-struct
+		relationships := s.extractRelationships(typ, nil)
+
+		if len(relationships) != 0 {
+			t.Errorf("expected 0 relationships for pointer to non-struct, got %d", len(relationships))
+		}
+	})
+
+	t.Run("non-struct type returns empty", func(t *testing.T) {
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		// Direct non-struct type
+		typ := reflect.TypeOf(42)
+
+		relationships := s.extractRelationships(typ, nil)
+
+		if len(relationships) != 0 {
+			t.Errorf("expected 0 relationships for non-struct, got %d", len(relationships))
+		}
+	})
+}
+
 func TestExtractRelationshipsScanMode(t *testing.T) {
 	instance.cache.Clear()
 
