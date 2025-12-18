@@ -273,6 +273,45 @@ func TestExtractMetadataInternal(t *testing.T) {
 		}
 	})
 
+	t.Run("visited and cached returns cached", func(t *testing.T) {
+		instance.cache.Clear()
+
+		type CycleType struct {
+			Name string `json:"name"`
+		}
+
+		s := &Sentinel{
+			cache:          instance.cache,
+			registeredTags: instance.registeredTags,
+		}
+
+		typ := reflect.TypeOf(CycleType{})
+
+		// Pre-populate cache with metadata
+		cachedMeta := Metadata{
+			TypeName:    "CycleType",
+			PackageName: "sentinel",
+			Fields: []FieldMetadata{
+				{Name: "Name", Type: "string", Tags: map[string]string{"json": "name"}},
+			},
+		}
+		instance.cache.Set("CycleType", cachedMeta)
+
+		// Mark as visited AND cached - simulates hitting same type twice in circular ref
+		visited := make(map[string]bool)
+		visited["CycleType"] = true
+
+		// Should return cached metadata
+		metadata := s.extractMetadataInternal(typ, visited)
+
+		if metadata.TypeName != "CycleType" {
+			t.Errorf("expected cached TypeName 'CycleType', got %s", metadata.TypeName)
+		}
+		if len(metadata.Fields) != 1 {
+			t.Errorf("expected 1 field from cache, got %d", len(metadata.Fields))
+		}
+	})
+
 	t.Run("cached with visited map triggers relationship scan", func(t *testing.T) {
 		instance.cache.Clear()
 

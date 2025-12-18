@@ -27,9 +27,6 @@ func getTypeName(t reflect.Type) string {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	if t == nil {
-		return "nil"
-	}
 	return t.Name()
 }
 

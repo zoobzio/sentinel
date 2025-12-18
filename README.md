@@ -6,10 +6,10 @@
 [![CodeQL](https://github.com/zoobzio/sentinel/workflows/CodeQL/badge.svg)](https://github.com/zoobzio/sentinel/security/code-scanning)
 [![Go Reference](https://pkg.go.dev/badge/github.com/zoobzio/sentinel.svg)](https://pkg.go.dev/github.com/zoobzio/sentinel)
 [![License](https://img.shields.io/github/license/zoobzio/sentinel)](LICENSE)
-[![Go Version](https://img.shields.io/github/go-mod-go-version/zoobzio/sentinel)](go.mod)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/zoobzio/sentinel)](go.mod)
 [![Release](https://img.shields.io/github/v/release/zoobzio/sentinel)](https://github.com/zoobzio/sentinel/releases)
 
-Struct metadata extraction and relationship discovery for Go.
+Zero-dependency struct introspection for Go — extract metadata once, cache forever, and discover relationships between types.
 
 ## The Problem
 
@@ -44,6 +44,13 @@ No reflection boilerplate. No manual traversal. Cached forever.
 - **Type-safe generics** — `Inspect[T]()` catches type errors at compile time
 - **Relationship discovery** — automatically maps references, collections, embeddings, and maps
 - **Module-aware scanning** — `Scan[T]()` recursively extracts all related types in your module
+- **Thread-safe** — concurrent access after initial extraction
+
+## Use Cases
+
+- [Generate ERD diagrams](docs/4.cookbooks/1.erd-diagrams.md) from your domain models
+- [Build structurally safe SQL queries](docs/4.cookbooks/2.database-schemas.md) (no injection by construction)
+- [Auto-generate OpenAPI documentation](docs/4.cookbooks/3.api-documentation.md) from struct tags
 
 ## Install
 
@@ -103,6 +110,42 @@ schema := sentinel.Schema()     // Returns all cached metadata
 | `Reset()` | Clear cache (for testing) |
 | `GetRelationships[T]()` | Get types that T references |
 | `GetReferencedBy[T]()` | Get types that reference T |
+
+## Relationship Discovery
+
+Sentinel automatically discovers how your types connect:
+
+```go
+sentinel.Scan[User]()
+
+// What does User reference?
+sentinel.GetRelationships[User]()  // → Profile (reference), Order (collection)
+
+// What references Order?
+sentinel.GetReferencedBy[Order]()  // → User
+```
+
+Combined with [erd](https://github.com/zoobzio/erd), this metadata generates diagrams directly from your types:
+
+```mermaid
+erDiagram
+    User {
+        string ID PK
+        string Email UK
+        string Name
+    }
+    Profile {
+        string ID PK
+        string Bio "nullable"
+    }
+    Order {
+        string ID PK
+        float64 Total
+        string Status
+    }
+    User ||--|| Profile : Profile
+    User ||--o{ Order : Orders
+```
 
 ## Design
 
