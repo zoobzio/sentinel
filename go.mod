@@ -1,6 +1,8 @@
 module github.com/zoobzio/sentinel
 
-go 1.23.2
+go 1.23
+
+toolchain go1.25.5
 
 retract (
 	v1.0.1

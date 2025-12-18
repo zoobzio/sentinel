@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestModelMetadata(t *testing.T) {
+func TestMetadata(t *testing.T) {
 	t.Run("struct fields", func(t *testing.T) {
-		metadata := ModelMetadata{
+		metadata := Metadata{
 			TypeName:    "User",
 			PackageName: "main",
 			Fields: []FieldMetadata{
@@ -32,7 +32,7 @@ func TestModelMetadata(t *testing.T) {
 
 	t.Run("json tags", func(t *testing.T) {
 		// Verify JSON struct tags are properly defined
-		metadata := ModelMetadata{}
+		metadata := Metadata{}
 		metaType := reflect.TypeOf(metadata)
 
 		expectedTags := map[string]string{
@@ -144,13 +144,13 @@ func TestGetTypeName(t *testing.T) {
 		},
 		{
 			name:     "named struct type",
-			input:    reflect.TypeOf(ModelMetadata{}),
-			expected: "ModelMetadata",
+			input:    reflect.TypeOf(Metadata{}),
+			expected: "Metadata",
 		},
 		{
 			name:     "pointer to struct",
-			input:    reflect.TypeOf(&ModelMetadata{}),
-			expected: "ModelMetadata",
+			input:    reflect.TypeOf(&Metadata{}),
+			expected: "Metadata",
 		},
 		{
 			name:     "pointer to string",

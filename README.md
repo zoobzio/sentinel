@@ -6,18 +6,44 @@
 [![CodeQL](https://github.com/zoobzio/sentinel/workflows/CodeQL/badge.svg)](https://github.com/zoobzio/sentinel/security/code-scanning)
 [![Go Reference](https://pkg.go.dev/badge/github.com/zoobzio/sentinel.svg)](https://pkg.go.dev/github.com/zoobzio/sentinel)
 [![License](https://img.shields.io/github/license/zoobzio/sentinel)](LICENSE)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/zoobzio/sentinel)](go.mod)
+[![Go Version](https://img.shields.io/github/go-mod-go-version/zoobzio/sentinel)](go.mod)
 [![Release](https://img.shields.io/github/v/release/zoobzio/sentinel)](https://github.com/zoobzio/sentinel/releases)
 
-Struct metadata extraction and relationship discovery for Go with zero dependencies.
+Struct metadata extraction and relationship discovery for Go.
 
-## Why Sentinel?
+## The Problem
+
+Go's `reflect` package is powerful but verbose. Extracting field names, types, and struct tags requires boilerplate. Discovering relationships between types — which structs reference which — requires manual traversal. And you end up doing this work repeatedly, even though types never change at runtime.
+
+## The Solution
+
+Sentinel extracts struct metadata once, caches it permanently, and provides a clean API to access it:
+
+```go
+type User struct {
+    ID      string   `json:"id" validate:"required"`
+    Email   string   `json:"email" validate:"email"`
+    Profile *Profile
+    Orders  []Order
+}
+
+metadata := sentinel.Scan[User]()
+```
+
+You get:
+- **Fields** — names, types, and all struct tags
+- **Relationships** — `User` → `Profile` (reference), `User` → `Order` (collection)
+- **Full type graph** — `Profile` and `Order` are cached too
+
+No reflection boilerplate. No manual traversal. Cached forever.
+
+## Features
 
 - **Zero dependencies** — only the Go standard library
-- **Permanent caching** — types don't change at runtime, so metadata is cached forever
-- **Type-safe generics** — `Inspect[T]()` catches errors at compile time
-- **Relationship discovery** — understands how your types connect
-- **Module-aware scanning** — recursively extracts related types within your module
+- **Permanent caching** — types are immutable at runtime, so metadata is cached once
+- **Type-safe generics** — `Inspect[T]()` catches type errors at compile time
+- **Relationship discovery** — automatically maps references, collections, embeddings, and maps
+- **Module-aware scanning** — `Scan[T]()` recursively extracts all related types in your module
 
 ## Install
 
@@ -30,88 +56,63 @@ Requires Go 1.23+.
 ## Quick Start
 
 ```go
-type User struct {
-    ID      string   `json:"id" db:"user_id"`
-    Name    string   `json:"name" validate:"required"`
-    Profile *Profile `json:"profile"`
-    Orders  []Order  `json:"orders"`
+// Define your types
+type Order struct {
+    ID     string  `json:"id" db:"order_id"`
+    Total  float64 `json:"total" validate:"gte=0"`
+    Status string  `json:"status"`
 }
 
-// Extract metadata (cached permanently)
-metadata := sentinel.Inspect[User]()
+// Extract metadata
+metadata := sentinel.Inspect[Order]()
 
-// Or scan entire type graph
-metadata := sentinel.Scan[User]()  // Caches User + Profile + Order + ...
-
-// Access field metadata
+// Access fields
 for _, field := range metadata.Fields {
-    fmt.Printf("%s: %v\n", field.Name, field.Tags)
+    fmt.Printf("%s (%s): %v\n", field.Name, field.Type, field.Tags)
 }
+// Output:
+// ID (string): map[json:id db:order_id]
+// Total (float64): map[json:total validate:gte=0]
+// Status (string): map[json:status]
 
-// Discover relationships
+// Access relationships (if any)
 for _, rel := range metadata.Relationships {
     fmt.Printf("%s -> %s (%s)\n", rel.From, rel.To, rel.Kind)
 }
 ```
 
-## Examples
-
-**Extract validation rules:**
+For types with relationships, use `Scan` to cache the entire type graph:
 
 ```go
-metadata := sentinel.Inspect[Form]()
-for _, field := range metadata.Fields {
-    if rules, ok := field.Tags["validate"]; ok {
-        fmt.Printf("%s: %s\n", field.Name, rules)
-    }
-}
+sentinel.Scan[User]()           // Caches User, Profile, Order, and their relationships
+schema := sentinel.Schema()     // Returns all cached metadata
 ```
 
-**Database column mapping:**
+## API Reference
 
-```go
-metadata := sentinel.Inspect[Model]()
-for _, field := range metadata.Fields {
-    if col, ok := field.Tags["db"]; ok {
-        fmt.Printf("%s -> %s\n", field.Name, col)
-    }
-}
-```
-
-**Export schema for code generation:**
-
-```go
-sentinel.Scan[User]()  // Cache all related types
-schema := sentinel.Schema()
-jsonSchema, _ := json.MarshalIndent(schema, "", "  ")
-```
-
-## Core API
-
-```go
-sentinel.Inspect[T]()           // Extract single type
-sentinel.Scan[T]()              // Extract type + all related types in module
-sentinel.TryInspect[T]()        // Inspect, but returns error instead of panic
-sentinel.TryScan[T]()           // Scan, but returns error instead of panic
-sentinel.Tag(name)              // Register custom tag
-sentinel.Browse()               // List cached type names
-sentinel.Lookup(name)           // Get cached metadata by name
-sentinel.Schema()               // Export all cached metadata
-sentinel.Reset()                // Clear cache (for testing)
-
-sentinel.GetRelationships[T]()  // Types that T references
-sentinel.GetReferencedBy[T]()   // Types that reference T
-```
+| Function | Purpose |
+|----------|---------|
+| `Inspect[T]()` | Extract metadata for a single type |
+| `Scan[T]()` | Extract type and all related types in module |
+| `TryInspect[T]()` | Like Inspect, returns error instead of panic |
+| `TryScan[T]()` | Like Scan, returns error instead of panic |
+| `Tag(name)` | Register a custom struct tag for extraction |
+| `Browse()` | List all cached type names |
+| `Lookup(name)` | Get cached metadata by type name |
+| `Schema()` | Export all cached metadata |
+| `Reset()` | Clear cache (for testing) |
+| `GetRelationships[T]()` | Get types that T references |
+| `GetReferencedBy[T]()` | Get types that reference T |
 
 ## Design
 
-Sentinel uses global state by design. Go's type system is fixed at compile time—a struct's fields and tags cannot change while the program runs. This means:
+Sentinel uses global state by design. Go's type system is fixed at compile time — a struct's fields and tags cannot change while the program runs. This means:
 
 - One type system = one metadata cache
 - No cache invalidation needed
 - Thread-safe access after initial extraction
 
-Go does not permit methods with type parameters, so functions like `Inspect[T]()` must be package-level. Instance-based APIs are not possible for this pattern.
+Go does not permit methods with type parameters, so functions like `Inspect[T]()` must be package-level.
 
 See [Design Philosophy](docs/1.overview.md#design-philosophy) for details.
 
@@ -125,9 +126,13 @@ See [Design Philosophy](docs/1.overview.md#design-philosophy) for details.
   - [Scanning](docs/3.guides/1.scanning.md) — Inspect vs Scan, module boundaries
   - [Tags](docs/3.guides/2.tags.md) — custom tag registration
   - [Testing](docs/3.guides/3.testing.md) — testing with sentinel
+- **Cookbooks**
+  - [ERD Diagrams](docs/4.cookbooks/1.erd-diagrams.md) — visualize domain models with erd
+  - [SQL Injection Safety](docs/4.cookbooks/2.database-schemas.md) — structurally safe queries with cereal
+  - [API Documentation](docs/4.cookbooks/3.api-documentation.md) — automatic OpenAPI generation with rocco
 - **Reference**
-  - [API](docs/4.reference/1.api.md) — complete function documentation
-  - [Types](docs/4.reference/2.types.md) — ModelMetadata, FieldMetadata, TypeRelationship
+  - [API](docs/5.reference/1.api.md) — complete function documentation
+  - [Types](docs/5.reference/2.types.md) — Metadata, FieldMetadata, TypeRelationship
 
 ## Contributing
 

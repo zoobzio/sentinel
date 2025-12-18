@@ -8,10 +8,10 @@ import (
 // This allows sentinel to work with different caching strategies.
 type Cache interface {
 	// Get retrieves metadata for a type name
-	Get(typeName string) (ModelMetadata, bool)
+	Get(typeName string) (Metadata, bool)
 
 	// Set stores metadata for a type name
-	Set(typeName string, metadata ModelMetadata)
+	Set(typeName string, metadata Metadata)
 
 	// Clear removes all cached metadata
 	Clear()
@@ -25,19 +25,19 @@ type Cache interface {
 
 // MemoryCache is the default in-memory cache implementation.
 type MemoryCache struct {
-	store map[string]ModelMetadata
+	store map[string]Metadata
 	mu    sync.RWMutex
 }
 
 // NewMemoryCache creates a new in-memory cache.
 func NewMemoryCache() *MemoryCache {
 	return &MemoryCache{
-		store: make(map[string]ModelMetadata),
+		store: make(map[string]Metadata),
 	}
 }
 
 // Get retrieves metadata from the cache.
-func (c *MemoryCache) Get(typeName string) (ModelMetadata, bool) {
+func (c *MemoryCache) Get(typeName string) (Metadata, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -46,7 +46,7 @@ func (c *MemoryCache) Get(typeName string) (ModelMetadata, bool) {
 }
 
 // Set stores metadata in the cache.
-func (c *MemoryCache) Set(typeName string, metadata ModelMetadata) {
+func (c *MemoryCache) Set(typeName string, metadata Metadata) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -58,7 +58,7 @@ func (c *MemoryCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.store = make(map[string]ModelMetadata)
+	c.store = make(map[string]Metadata)
 }
 
 // Size returns the number of cached entries.
@@ -84,19 +84,19 @@ func (c *MemoryCache) Keys() []string {
 // PermanentCache is a simple cache that never expires entries.
 // Since types are immutable at runtime, we can cache metadata forever.
 type PermanentCache struct {
-	store map[string]ModelMetadata
+	store map[string]Metadata
 	mu    sync.RWMutex
 }
 
 // NewPermanentCache creates a new permanent cache.
 func NewPermanentCache() *PermanentCache {
 	return &PermanentCache{
-		store: make(map[string]ModelMetadata),
+		store: make(map[string]Metadata),
 	}
 }
 
 // Get retrieves metadata from the cache.
-func (c *PermanentCache) Get(typeName string) (ModelMetadata, bool) {
+func (c *PermanentCache) Get(typeName string) (Metadata, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -105,7 +105,7 @@ func (c *PermanentCache) Get(typeName string) (ModelMetadata, bool) {
 }
 
 // Set stores metadata in the cache permanently.
-func (c *PermanentCache) Set(typeName string, metadata ModelMetadata) {
+func (c *PermanentCache) Set(typeName string, metadata Metadata) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -118,7 +118,7 @@ func (c *PermanentCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.store = make(map[string]ModelMetadata)
+	c.store = make(map[string]Metadata)
 }
 
 // Size returns the number of cached entries.

@@ -13,7 +13,7 @@ type TestUser struct {
 	Age       int       `json:"age" validate:"min=18,max=120"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	Internal  string    // No tags
-	private   string    //nolint:structcheck,unused // Unexported field for testing
+	private   string    //nolint:unused // Unexported field for testing
 }
 
 // Simple struct for basic tests.

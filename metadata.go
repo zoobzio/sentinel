@@ -4,8 +4,8 @@ import (
 	"reflect"
 )
 
-// ModelMetadata contains comprehensive information about a user model.
-type ModelMetadata struct {
+// Metadata contains comprehensive information about a user model.
+type Metadata struct {
 	TypeName      string             `json:"type_name"`
 	PackageName   string             `json:"package_name"`
 	Fields        []FieldMetadata    `json:"fields"`

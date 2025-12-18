@@ -21,7 +21,7 @@ func TestMemoryCache(t *testing.T) {
 		}
 
 		// Test Set and Get
-		metadata := ModelMetadata{
+		metadata := Metadata{
 			TypeName:    "TestType",
 			PackageName: "test",
 			Fields: []FieldMetadata{
@@ -55,9 +55,9 @@ func TestMemoryCache(t *testing.T) {
 		}
 
 		// Add multiple entries
-		cache.Set("Type1", ModelMetadata{TypeName: "Type1"})
-		cache.Set("Type2", ModelMetadata{TypeName: "Type2"})
-		cache.Set("Type3", ModelMetadata{TypeName: "Type3"})
+		cache.Set("Type1", Metadata{TypeName: "Type1"})
+		cache.Set("Type2", Metadata{TypeName: "Type2"})
+		cache.Set("Type3", Metadata{TypeName: "Type3"})
 
 		keys = cache.Keys()
 		if len(keys) != 3 {
@@ -80,8 +80,8 @@ func TestMemoryCache(t *testing.T) {
 		cache := NewMemoryCache()
 
 		// Add entries
-		cache.Set("Type1", ModelMetadata{TypeName: "Type1"})
-		cache.Set("Type2", ModelMetadata{TypeName: "Type2"})
+		cache.Set("Type1", Metadata{TypeName: "Type1"})
+		cache.Set("Type2", Metadata{TypeName: "Type2"})
 
 		// Verify they exist
 		if size := cache.Size(); size != 2 {
@@ -107,14 +107,14 @@ func TestMemoryCache(t *testing.T) {
 		cache := NewMemoryCache()
 
 		// Set initial value
-		metadata1 := ModelMetadata{
+		metadata1 := Metadata{
 			TypeName: "TestType",
 			Fields:   []FieldMetadata{{Name: "Field1"}},
 		}
 		cache.Set("TestType", metadata1)
 
 		// Overwrite with new value
-		metadata2 := ModelMetadata{
+		metadata2 := Metadata{
 			TypeName: "TestType",
 			Fields:   []FieldMetadata{{Name: "Field1"}, {Name: "Field2"}},
 		}
@@ -142,7 +142,7 @@ func TestMemoryCache(t *testing.T) {
 			go func(n int) {
 				defer wg.Done()
 				typeName := string(rune('A' + n%26))
-				cache.Set(typeName, ModelMetadata{TypeName: typeName})
+				cache.Set(typeName, Metadata{TypeName: typeName})
 			}(i)
 		}
 
@@ -192,7 +192,7 @@ func TestPermanentCache(t *testing.T) {
 		}
 
 		// Test Set and Get
-		metadata := ModelMetadata{
+		metadata := Metadata{
 			TypeName:    "TestType",
 			PackageName: "test",
 			Fields: []FieldMetadata{
@@ -220,8 +220,8 @@ func TestPermanentCache(t *testing.T) {
 		cache := NewPermanentCache()
 
 		// Add entries
-		cache.Set("Type1", ModelMetadata{TypeName: "Type1"})
-		cache.Set("Type2", ModelMetadata{TypeName: "Type2"})
+		cache.Set("Type1", Metadata{TypeName: "Type1"})
+		cache.Set("Type2", Metadata{TypeName: "Type2"})
 
 		// Clear should empty the cache
 		cache.Clear()
@@ -241,9 +241,9 @@ func TestPermanentCache(t *testing.T) {
 		cache := NewPermanentCache()
 
 		// Add multiple entries
-		cache.Set("Type1", ModelMetadata{TypeName: "Type1"})
-		cache.Set("Type2", ModelMetadata{TypeName: "Type2"})
-		cache.Set("Type3", ModelMetadata{TypeName: "Type3"})
+		cache.Set("Type1", Metadata{TypeName: "Type1"})
+		cache.Set("Type2", Metadata{TypeName: "Type2"})
+		cache.Set("Type3", Metadata{TypeName: "Type3"})
 
 		keys := cache.Keys()
 		if len(keys) != 3 {
@@ -272,7 +272,7 @@ func TestPermanentCache(t *testing.T) {
 			go func(n int) {
 				defer wg.Done()
 				typeName := string(rune('A' + n%26))
-				cache.Set(typeName, ModelMetadata{TypeName: typeName})
+				cache.Set(typeName, Metadata{TypeName: typeName})
 			}(i)
 		}
 

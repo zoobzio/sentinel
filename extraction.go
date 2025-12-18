@@ -6,15 +6,15 @@ import (
 
 // extractMetadata performs the complete metadata extraction for a type.
 // This is used by Inspect() for single-type inspection (no recursive scanning).
-func (s *Sentinel) extractMetadata(t reflect.Type) ModelMetadata {
+func (s *Sentinel) extractMetadata(t reflect.Type) Metadata {
 	return s.extractMetadataInternal(t, nil)
 }
 
 // extractMetadataInternal performs metadata extraction with optional recursive scanning.
 // If visited is non-nil, it will recursively scan related types in the same module.
-func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bool) ModelMetadata {
+func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bool) Metadata {
 	if t == nil {
-		return ModelMetadata{}
+		return Metadata{}
 	}
 
 	// Normalize pointer types
@@ -23,7 +23,7 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 	}
 
 	if t.Kind() != reflect.Struct {
-		return ModelMetadata{}
+		return Metadata{}
 	}
 
 	typeName := getTypeName(t)
@@ -34,7 +34,7 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 		if cached, exists := s.cache.Get(typeName); exists {
 			return cached
 		}
-		return ModelMetadata{}
+		return Metadata{}
 	}
 
 	// Mark as visited before processing
@@ -55,7 +55,7 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 	}
 
 	// Initialize metadata with basic reflection
-	metadata := ModelMetadata{
+	metadata := Metadata{
 		TypeName:    typeName,
 		PackageName: t.PkgPath(),
 	}

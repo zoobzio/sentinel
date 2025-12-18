@@ -1,3 +1,4 @@
+// Package sentinel provides struct metadata extraction and relationship discovery for Go.
 package sentinel
 
 import (
@@ -52,7 +53,7 @@ type Sentinel struct {
 
 // Inspect returns comprehensive metadata for a type.
 // Panics if T is not a struct type.
-func Inspect[T any]() ModelMetadata {
+func Inspect[T any]() Metadata {
 	metadata, err := TryInspect[T]()
 	if err != nil {
 		panic(err)
@@ -62,7 +63,7 @@ func Inspect[T any]() ModelMetadata {
 
 // TryInspect returns comprehensive metadata for a type.
 // Returns ErrNotStruct if T is not a struct type.
-func TryInspect[T any]() (ModelMetadata, error) {
+func TryInspect[T any]() (Metadata, error) {
 	var zero T
 	t := reflect.TypeOf(zero)
 
@@ -71,7 +72,7 @@ func TryInspect[T any]() (ModelMetadata, error) {
 		if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
 			t = t.Elem()
 		} else {
-			return ModelMetadata{}, ErrNotStruct
+			return Metadata{}, ErrNotStruct
 		}
 	}
 
@@ -95,7 +96,7 @@ func TryInspect[T any]() (ModelMetadata, error) {
 // Unlike Inspect which only processes a single type, Scan will follow relationships and
 // automatically inspect any related types that share the same module root.
 // Panics if T is not a struct type.
-func Scan[T any]() ModelMetadata {
+func Scan[T any]() Metadata {
 	metadata, err := TryScan[T]()
 	if err != nil {
 		panic(err)
@@ -107,7 +108,7 @@ func Scan[T any]() ModelMetadata {
 // Unlike TryInspect which only processes a single type, TryScan will follow relationships and
 // automatically inspect any related types that share the same module root.
 // Returns ErrNotStruct if T is not a struct type.
-func TryScan[T any]() (ModelMetadata, error) {
+func TryScan[T any]() (Metadata, error) {
 	var zero T
 	t := reflect.TypeOf(zero)
 
@@ -116,7 +117,7 @@ func TryScan[T any]() (ModelMetadata, error) {
 		if t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct {
 			t = t.Elem()
 		} else {
-			return ModelMetadata{}, ErrNotStruct
+			return Metadata{}, ErrNotStruct
 		}
 	}
 
@@ -145,15 +146,15 @@ func Browse() []string {
 
 // Lookup returns cached metadata for a type name if it exists.
 // This allows external packages to access metadata that has already been extracted.
-func Lookup(typeName string) (ModelMetadata, bool) {
+func Lookup(typeName string) (Metadata, bool) {
 	return instance.cache.Get(typeName)
 }
 
 // Schema returns all cached metadata as a map.
 // This is useful for generating documentation, exporting schemas, or analyzing
 // the complete type graph of inspected types.
-func Schema() map[string]ModelMetadata {
-	schema := make(map[string]ModelMetadata)
+func Schema() map[string]Metadata {
+	schema := make(map[string]Metadata)
 	for _, typeName := range instance.cache.Keys() {
 		if metadata, exists := instance.cache.Get(typeName); exists {
 			schema[typeName] = metadata
