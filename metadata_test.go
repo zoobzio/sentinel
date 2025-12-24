@@ -58,8 +58,11 @@ func TestMetadata(t *testing.T) {
 func TestFieldMetadata(t *testing.T) {
 	t.Run("struct fields", func(t *testing.T) {
 		field := FieldMetadata{
-			Name: "Email",
-			Type: "string",
+			Index:       []int{0},
+			Name:        "Email",
+			Type:        "string",
+			Kind:        KindScalar,
+			ReflectType: reflect.TypeOf(""),
 			Tags: map[string]string{
 				"json":     "email",
 				"validate": "required,email",
@@ -72,6 +75,15 @@ func TestFieldMetadata(t *testing.T) {
 		}
 		if field.Type != "string" {
 			t.Errorf("expected Type 'string', got %s", field.Type)
+		}
+		if field.Kind != KindScalar {
+			t.Errorf("expected Kind 'scalar', got %s", field.Kind)
+		}
+		if len(field.Index) != 1 || field.Index[0] != 0 {
+			t.Errorf("expected Index [0], got %v", field.Index)
+		}
+		if field.ReflectType.Kind() != reflect.String {
+			t.Errorf("expected ReflectType kind String, got %v", field.ReflectType.Kind())
 		}
 		if len(field.Tags) != 3 {
 			t.Errorf("expected 3 tags, got %d", len(field.Tags))
@@ -87,9 +99,11 @@ func TestFieldMetadata(t *testing.T) {
 		fieldType := reflect.TypeOf(field)
 
 		expectedTags := map[string]string{
-			"Tags": "tags,omitempty",
-			"Name": "name",
-			"Type": "type",
+			"Index": "index",
+			"Tags":  "tags,omitempty",
+			"Name":  "name",
+			"Type":  "type",
+			"Kind":  "kind",
 		}
 
 		for fieldName, expectedTag := range expectedTags {
@@ -102,18 +116,139 @@ func TestFieldMetadata(t *testing.T) {
 				t.Errorf("field %s: expected json tag %q, got %q", fieldName, expectedTag, tag)
 			}
 		}
+
+		// Verify ReflectType is excluded from JSON
+		reflectField, found := fieldType.FieldByName("ReflectType")
+		if !found {
+			t.Error("ReflectType field not found")
+		} else if tag := reflectField.Tag.Get("json"); tag != "-" {
+			t.Errorf("ReflectType: expected json tag '-', got %q", tag)
+		}
 	})
 
 	t.Run("nil tags map", func(_ *testing.T) {
 		_ = FieldMetadata{
-			Name: "ID",
-			Type: "int",
-			Tags: nil,
+			Index: []int{0},
+			Name:  "ID",
+			Type:  "int",
+			Kind:  KindScalar,
+			Tags:  nil,
 		}
 
 		// Should not panic.
 		// When Tags is nil, this is expected and allowed behavior.
 	})
+}
+
+func TestFieldKindConstants(t *testing.T) {
+	t.Run("constant values", func(t *testing.T) {
+		if KindScalar != "scalar" {
+			t.Errorf("expected KindScalar 'scalar', got %s", KindScalar)
+		}
+		if KindPointer != "pointer" {
+			t.Errorf("expected KindPointer 'pointer', got %s", KindPointer)
+		}
+		if KindSlice != "slice" {
+			t.Errorf("expected KindSlice 'slice', got %s", KindSlice)
+		}
+		if KindStruct != "struct" {
+			t.Errorf("expected KindStruct 'struct', got %s", KindStruct)
+		}
+		if KindMap != "map" {
+			t.Errorf("expected KindMap 'map', got %s", KindMap)
+		}
+		if KindInterface != "interface" {
+			t.Errorf("expected KindInterface 'interface', got %s", KindInterface)
+		}
+	})
+}
+
+func TestGetFieldKind(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    reflect.Type
+		expected FieldKind
+	}{
+		{
+			name:     "nil type",
+			input:    nil,
+			expected: KindInterface,
+		},
+		{
+			name:     "string type",
+			input:    reflect.TypeOf(""),
+			expected: KindScalar,
+		},
+		{
+			name:     "int type",
+			input:    reflect.TypeOf(0),
+			expected: KindScalar,
+		},
+		{
+			name:     "float64 type",
+			input:    reflect.TypeOf(0.0),
+			expected: KindScalar,
+		},
+		{
+			name:     "bool type",
+			input:    reflect.TypeOf(true),
+			expected: KindScalar,
+		},
+		{
+			name:     "pointer type",
+			input:    reflect.TypeOf((*string)(nil)),
+			expected: KindPointer,
+		},
+		{
+			name:     "pointer to struct",
+			input:    reflect.TypeOf(&Metadata{}),
+			expected: KindPointer,
+		},
+		{
+			name:     "slice type",
+			input:    reflect.TypeOf([]string{}),
+			expected: KindSlice,
+		},
+		{
+			name:     "array type",
+			input:    reflect.TypeOf([5]int{}),
+			expected: KindSlice,
+		},
+		{
+			name:     "struct type",
+			input:    reflect.TypeOf(Metadata{}),
+			expected: KindStruct,
+		},
+		{
+			name:     "map type",
+			input:    reflect.TypeOf(map[string]int{}),
+			expected: KindMap,
+		},
+		{
+			name:     "interface type",
+			input:    reflect.TypeOf((*error)(nil)).Elem(),
+			expected: KindInterface,
+		},
+		{
+			name:     "channel type",
+			input:    reflect.TypeOf(make(chan int)),
+			expected: KindScalar,
+		},
+		{
+			name:     "func type",
+			input:    reflect.TypeOf(func() {}),
+			expected: KindScalar,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getFieldKind(tt.input)
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
 }
 
 func TestGetTypeName(t *testing.T) {

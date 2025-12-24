@@ -43,6 +43,16 @@ func TestExtractMetadata(t *testing.T) {
 		if field.Tags["validate"] != "required" {
 			t.Errorf("expected validate tag 'required', got %s", field.Tags["validate"])
 		}
+		// Verify new fields
+		if len(field.Index) != 1 || field.Index[0] != 0 {
+			t.Errorf("expected Index [0], got %v", field.Index)
+		}
+		if field.Kind != KindScalar {
+			t.Errorf("expected Kind 'scalar', got %s", field.Kind)
+		}
+		if field.ReflectType == nil || field.ReflectType.Kind() != reflect.String {
+			t.Errorf("expected ReflectType to be string, got %v", field.ReflectType)
+		}
 	})
 
 	t.Run("struct with multiple fields", func(t *testing.T) {
@@ -474,6 +484,89 @@ func TestExtractFieldMetadata(t *testing.T) {
 		fields := s.extractFieldMetadata(reflect.TypeOf("string"))
 		if len(fields) != 0 {
 			t.Errorf("expected 0 fields for non-struct type, got %d", len(fields))
+		}
+	})
+
+	t.Run("field index and kind verification", func(t *testing.T) {
+		type Related struct {
+			Value string
+		}
+		type AllKindsStruct struct {
+			Scalar    string            `json:"scalar"`
+			Pointer   *string           `json:"pointer"`
+			Slice     []string          `json:"slice"`
+			Array     [5]int            `json:"array"`
+			Struct    Related           `json:"struct"`
+			Map       map[string]int    `json:"map"`
+			Interface interface{}       `json:"interface"`
+			PtrStruct *Related          `json:"ptr_struct"`
+			SlicePtr  []*Related        `json:"slice_ptr"`
+		}
+
+		fields := s.extractFieldMetadata(reflect.TypeOf(AllKindsStruct{}))
+		if len(fields) != 9 {
+			t.Fatalf("expected 9 fields, got %d", len(fields))
+		}
+
+		expectedKinds := []struct {
+			name  string
+			index int
+			kind  FieldKind
+		}{
+			{"Scalar", 0, KindScalar},
+			{"Pointer", 1, KindPointer},
+			{"Slice", 2, KindSlice},
+			{"Array", 3, KindSlice},
+			{"Struct", 4, KindStruct},
+			{"Map", 5, KindMap},
+			{"Interface", 6, KindInterface},
+			{"PtrStruct", 7, KindPointer},
+			{"SlicePtr", 8, KindSlice},
+		}
+
+		for i, expected := range expectedKinds {
+			field := fields[i]
+			if field.Name != expected.name {
+				t.Errorf("field %d: expected name %s, got %s", i, expected.name, field.Name)
+			}
+			if len(field.Index) != 1 || field.Index[0] != expected.index {
+				t.Errorf("field %s: expected Index [%d], got %v", expected.name, expected.index, field.Index)
+			}
+			if field.Kind != expected.kind {
+				t.Errorf("field %s: expected Kind %s, got %s", expected.name, expected.kind, field.Kind)
+			}
+			if field.ReflectType == nil {
+				t.Errorf("field %s: ReflectType should not be nil", expected.name)
+			}
+		}
+	})
+
+	t.Run("reflect type usability", func(t *testing.T) {
+		type TypeTestStruct struct {
+			Name   string  `json:"name"`
+			Count  int     `json:"count"`
+			Active bool    `json:"active"`
+			Score  float64 `json:"score"`
+		}
+
+		fields := s.extractFieldMetadata(reflect.TypeOf(TypeTestStruct{}))
+		if len(fields) != 4 {
+			t.Fatalf("expected 4 fields, got %d", len(fields))
+		}
+
+		// Verify ReflectType can be used for type operations
+		expectedKinds := []reflect.Kind{
+			reflect.String,
+			reflect.Int,
+			reflect.Bool,
+			reflect.Float64,
+		}
+
+		for i, expectedKind := range expectedKinds {
+			if fields[i].ReflectType.Kind() != expectedKind {
+				t.Errorf("field %d: expected reflect.Kind %v, got %v",
+					i, expectedKind, fields[i].ReflectType.Kind())
+			}
 		}
 	})
 }

@@ -31,9 +31,10 @@ metadata := sentinel.Scan[User]()
 ```
 
 You get:
-- **Fields** — names, types, and all struct tags
+- **Fields** — names, types, indices, type categories (`scalar`/`pointer`/`slice`/`struct`/`map`/`interface`), and all struct tags
 - **Relationships** — `User` → `Profile` (reference), `User` → `Order` (collection)
 - **Full type graph** — `Profile` and `Order` are cached too
+- **reflect.Type access** — use `field.ReflectType` for advanced reflection operations
 
 No reflection boilerplate. No manual traversal. Cached forever.
 
@@ -75,12 +76,19 @@ metadata := sentinel.Inspect[Order]()
 
 // Access fields
 for _, field := range metadata.Fields {
-    fmt.Printf("%s (%s): %v\n", field.Name, field.Type, field.Tags)
+    fmt.Printf("%s (%s, %s): %v\n", field.Name, field.Type, field.Kind, field.Tags)
 }
 // Output:
-// ID (string): map[json:id db:order_id]
-// Total (float64): map[json:total validate:gte=0]
-// Status (string): map[json:status]
+// ID (string, scalar): map[json:id db:order_id]
+// Total (float64, scalar): map[json:total validate:gte=0]
+// Status (string, scalar): map[json:status]
+
+// Use field index for reflect access
+val := reflect.ValueOf(Order{ID: "123", Total: 99.99, Status: "pending"})
+for _, field := range metadata.Fields {
+    fieldVal := val.FieldByIndex(field.Index)
+    fmt.Printf("%s = %v\n", field.Name, fieldVal.Interface())
+}
 
 // Access relationships (if any)
 for _, rel := range metadata.Relationships {

@@ -4,6 +4,19 @@ import (
 	"reflect"
 )
 
+// FieldKind represents the category of a field's type.
+type FieldKind string
+
+// FieldKind constants for type categorization.
+const (
+	KindScalar    FieldKind = "scalar"    // Basic types: string, int, float, bool, etc.
+	KindPointer   FieldKind = "pointer"   // Pointer to any type
+	KindSlice     FieldKind = "slice"     // Slice or array
+	KindStruct    FieldKind = "struct"    // Struct type
+	KindMap       FieldKind = "map"       // Map type
+	KindInterface FieldKind = "interface" // Interface type
+)
+
 // Metadata contains comprehensive information about a user model.
 type Metadata struct {
 	TypeName      string             `json:"type_name"`
@@ -14,9 +27,12 @@ type Metadata struct {
 
 // FieldMetadata captures field-level information and all struct tags.
 type FieldMetadata struct {
-	Tags map[string]string `json:"tags,omitempty"`
-	Name string            `json:"name"`
-	Type string            `json:"type"`
+	ReflectType reflect.Type      `json:"-"`
+	Tags        map[string]string `json:"tags,omitempty"`
+	Name        string            `json:"name"`
+	Type        string            `json:"type"`
+	Kind        FieldKind         `json:"kind"`
+	Index       []int             `json:"index"`
 }
 
 // getTypeName extracts the type name from a reflect.Type.
@@ -28,6 +44,29 @@ func getTypeName(t reflect.Type) string {
 		t = t.Elem()
 	}
 	return t.Name()
+}
+
+// getFieldKind determines the FieldKind category from a reflect.Type.
+func getFieldKind(t reflect.Type) FieldKind {
+	if t == nil {
+		return KindInterface
+	}
+
+	switch t.Kind() {
+	case reflect.Ptr:
+		return KindPointer
+	case reflect.Slice, reflect.Array:
+		return KindSlice
+	case reflect.Struct:
+		return KindStruct
+	case reflect.Map:
+		return KindMap
+	case reflect.Interface:
+		return KindInterface
+	default:
+		// All other kinds are scalars: bool, int*, uint*, float*, complex*, string, etc.
+		return KindScalar
+	}
 }
 
 // TypeRelationship represents a relationship between two types.

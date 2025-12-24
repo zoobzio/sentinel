@@ -121,9 +121,12 @@ func (s *Sentinel) extractFieldMetadata(t reflect.Type) []FieldMetadata {
 		}
 
 		fieldMeta := FieldMetadata{
-			Name: field.Name,
-			Type: field.Type.String(),
-			Tags: tags,
+			Index:       field.Index,
+			Name:        field.Name,
+			Type:        field.Type.String(),
+			Kind:        getFieldKind(field.Type),
+			ReflectType: field.Type,
+			Tags:        tags,
 		}
 
 		fields = append(fields, fieldMeta)
