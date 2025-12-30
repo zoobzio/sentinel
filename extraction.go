@@ -56,6 +56,7 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 
 	// Initialize metadata with basic reflection
 	metadata := Metadata{
+		ReflectType: t,
 		TypeName:    typeName,
 		PackageName: t.PkgPath(),
 	}

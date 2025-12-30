@@ -7,7 +7,11 @@ import (
 
 func TestMetadata(t *testing.T) {
 	t.Run("struct fields", func(t *testing.T) {
+		type User struct {
+			ID string `json:"id"`
+		}
 		metadata := Metadata{
+			ReflectType: reflect.TypeOf(User{}),
 			TypeName:    "User",
 			PackageName: "main",
 			Fields: []FieldMetadata{
@@ -27,6 +31,11 @@ func TestMetadata(t *testing.T) {
 		}
 		if len(metadata.Fields) != 1 {
 			t.Errorf("expected 1 field, got %d", len(metadata.Fields))
+		}
+		if metadata.ReflectType == nil {
+			t.Error("expected ReflectType to be set")
+		} else if metadata.ReflectType.Kind() != reflect.Struct {
+			t.Errorf("expected ReflectType kind Struct, got %v", metadata.ReflectType.Kind())
 		}
 	})
 
@@ -51,6 +60,14 @@ func TestMetadata(t *testing.T) {
 			if tag := field.Tag.Get("json"); tag != expectedTag {
 				t.Errorf("field %s: expected json tag %q, got %q", fieldName, expectedTag, tag)
 			}
+		}
+
+		// Verify ReflectType is excluded from JSON
+		reflectField, found := metaType.FieldByName("ReflectType")
+		if !found {
+			t.Error("ReflectType field not found")
+		} else if tag := reflectField.Tag.Get("json"); tag != "-" {
+			t.Errorf("ReflectType: expected json tag '-', got %q", tag)
 		}
 	})
 }

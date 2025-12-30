@@ -26,6 +26,11 @@ func TestExtractMetadata(t *testing.T) {
 		if metadata.TypeName != "SimpleStruct" {
 			t.Errorf("expected TypeName 'SimpleStruct', got %s", metadata.TypeName)
 		}
+		if metadata.ReflectType == nil {
+			t.Error("expected ReflectType to be set")
+		} else if metadata.ReflectType != typ {
+			t.Errorf("expected ReflectType to match input type, got %v", metadata.ReflectType)
+		}
 		if len(metadata.Fields) != 1 {
 			t.Fatalf("expected 1 field, got %d", len(metadata.Fields))
 		}

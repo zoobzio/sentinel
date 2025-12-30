@@ -19,6 +19,7 @@ const (
 
 // Metadata contains comprehensive information about a user model.
 type Metadata struct {
+	ReflectType   reflect.Type       `json:"-"`
 	TypeName      string             `json:"type_name"`
 	PackageName   string             `json:"package_name"`
 	Fields        []FieldMetadata    `json:"fields"`
