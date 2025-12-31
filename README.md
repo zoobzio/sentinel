@@ -44,7 +44,7 @@ No reflection boilerplate. No manual traversal. Cached forever.
 go get github.com/zoobzio/sentinel@latest
 ```
 
-Requires Go 1.23+.
+Requires Go 1.24+.
 
 ## Quick Start
 

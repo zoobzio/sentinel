@@ -76,10 +76,10 @@ func TryInspect[T any]() (Metadata, error) {
 		}
 	}
 
-	typeName := getTypeName(t)
+	fqdn := getFQDN(t)
 
 	// Check cache first
-	if cached, exists := instance.cache.Get(typeName); exists {
+	if cached, exists := instance.cache.Get(fqdn); exists {
 		return cached, nil
 	}
 
@@ -87,7 +87,7 @@ func TryInspect[T any]() (Metadata, error) {
 	metadata := instance.extractMetadata(t)
 
 	// Store in cache
-	instance.cache.Set(typeName, metadata)
+	instance.cache.Set(fqdn, metadata)
 
 	return metadata, nil
 }
@@ -126,7 +126,7 @@ func TryScan[T any]() (Metadata, error) {
 	instance.scanWithVisited(t, visited)
 
 	// Return the metadata for the root type
-	metadata, _ := instance.cache.Get(getTypeName(t))
+	metadata, _ := instance.cache.Get(getFQDN(t))
 	return metadata, nil
 }
 

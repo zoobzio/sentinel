@@ -26,12 +26,13 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 		return Metadata{}
 	}
 
+	fqdn := getFQDN(t)
 	typeName := getTypeName(t)
 
 	// Check if already visited (cycle detection)
-	if visited != nil && visited[typeName] {
+	if visited != nil && visited[fqdn] {
 		// Already visited, return cached metadata
-		if cached, exists := s.cache.Get(typeName); exists {
+		if cached, exists := s.cache.Get(fqdn); exists {
 			return cached
 		}
 		return Metadata{}
@@ -39,12 +40,12 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 
 	// Mark as visited before processing
 	if visited != nil {
-		visited[typeName] = true
+		visited[fqdn] = true
 	}
 
 	// Check cache first (if cache exists)
 	if s.cache != nil {
-		if cached, exists := s.cache.Get(typeName); exists {
+		if cached, exists := s.cache.Get(fqdn); exists {
 			// Even if cached, we still need to scan relationships if in Scan mode
 			if visited != nil {
 				// Re-extract relationships to trigger recursive scanning
@@ -57,6 +58,7 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 	// Initialize metadata with basic reflection
 	metadata := Metadata{
 		ReflectType: t,
+		FQDN:        fqdn,
 		TypeName:    typeName,
 		PackageName: t.PkgPath(),
 	}
@@ -69,7 +71,7 @@ func (s *Sentinel) extractMetadataInternal(t reflect.Type, visited map[string]bo
 
 	// Store in cache (if cache exists)
 	if s.cache != nil {
-		s.cache.Set(typeName, metadata)
+		s.cache.Set(fqdn, metadata)
 	}
 
 	return metadata

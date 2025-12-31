@@ -20,8 +20,9 @@ const (
 // Metadata contains comprehensive information about a user model.
 type Metadata struct {
 	ReflectType   reflect.Type       `json:"-"`
-	TypeName      string             `json:"type_name"`
-	PackageName   string             `json:"package_name"`
+	FQDN          string             `json:"fqdn"`         // Fully qualified type name (e.g., "github.com/app/models.User")
+	TypeName      string             `json:"type_name"`    // Simple type name (e.g., "User")
+	PackageName   string             `json:"package_name"` // Package path (e.g., "github.com/app/models")
 	Fields        []FieldMetadata    `json:"fields"`
 	Relationships []TypeRelationship `json:"relationships,omitempty"`
 }
@@ -36,7 +37,21 @@ type FieldMetadata struct {
 	Index       []int             `json:"index"`
 }
 
-// getTypeName extracts the type name from a reflect.Type.
+// getFQDN returns the fully qualified type name (package path + type name).
+func getFQDN(t reflect.Type) string {
+	if t == nil {
+		return "nil"
+	}
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if pkgPath := t.PkgPath(); pkgPath != "" {
+		return pkgPath + "." + t.Name()
+	}
+	return t.Name()
+}
+
+// getTypeName extracts the simple type name from a reflect.Type.
 func getTypeName(t reflect.Type) string {
 	if t == nil {
 		return "nil"

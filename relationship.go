@@ -16,16 +16,16 @@ func GetRelationships[T any]() []TypeRelationship {
 func GetReferencedBy[T any]() []TypeRelationship {
 	var zero T
 	t := reflect.TypeOf(zero)
-	targetName := getTypeName(t)
+	targetFQDN := getFQDN(t)
 
 	var references []TypeRelationship
 
 	// Search through all cached types
-	for _, typeName := range instance.cache.Keys() {
-		if metadata, found := instance.cache.Get(typeName); found {
+	for _, fqdn := range instance.cache.Keys() {
+		if metadata, found := instance.cache.Get(fqdn); found {
 			// Check each relationship in this type
 			for _, rel := range metadata.Relationships {
-				if rel.To == targetName {
+				if rel.To == targetFQDN {
 					references = append(references, rel)
 				}
 			}
@@ -61,7 +61,7 @@ func (s *Sentinel) extractRelationships(t reflect.Type, visited map[string]bool)
 		// Check if field type is a struct or related type
 		rel := s.extractRelationship(field, rootPackage)
 		if rel != nil {
-			rel.From = t.Name()
+			rel.From = getFQDN(t)
 			relationships = append(relationships, *rel)
 
 			// If visited map is provided (Scan mode), recursively scan related types
@@ -138,7 +138,7 @@ func (s *Sentinel) createRelationshipIfInDomain(field reflect.StructField, targe
 	}
 
 	return &TypeRelationship{
-		To:        targetType.Name(),
+		To:        getFQDN(targetType),
 		Field:     field.Name,
 		Kind:      kind,
 		ToPackage: targetPkg,

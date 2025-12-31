@@ -268,6 +268,59 @@ func TestGetFieldKind(t *testing.T) {
 	}
 }
 
+func TestGetFQDN(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    reflect.Type
+		expected string
+	}{
+		{
+			name:     "nil type",
+			input:    nil,
+			expected: "nil",
+		},
+		{
+			name:     "named struct type",
+			input:    reflect.TypeOf(Metadata{}),
+			expected: "github.com/zoobzio/sentinel.Metadata",
+		},
+		{
+			name:     "pointer to struct",
+			input:    reflect.TypeOf(&Metadata{}),
+			expected: "github.com/zoobzio/sentinel.Metadata",
+		},
+		{
+			name:     "built-in string type",
+			input:    reflect.TypeOf(""),
+			expected: "string",
+		},
+		{
+			name:     "built-in int type",
+			input:    reflect.TypeOf(0),
+			expected: "int",
+		},
+		{
+			name:     "pointer to built-in",
+			input:    reflect.TypeOf((*string)(nil)),
+			expected: "string",
+		},
+		{
+			name:     "anonymous struct",
+			input:    reflect.TypeOf(struct{ Name string }{}),
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getFQDN(tt.input)
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
 func TestGetTypeName(t *testing.T) {
 	tests := []struct {
 		name     string

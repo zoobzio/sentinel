@@ -58,6 +58,9 @@ func TestRelationshipExtraction(t *testing.T) {
 
 	t.Run("BasicRelationships", func(t *testing.T) {
 		metadata := Inspect[User]()
+		profileMeta := Inspect[Profile]()
+		orderMeta := Inspect[Order]()
+		settingsMeta := Inspect[Settings]()
 
 		// Check relationships were extracted
 		if len(metadata.Relationships) == 0 {
@@ -74,11 +77,11 @@ func TestRelationshipExtraction(t *testing.T) {
 		if profile, ok := relMap["Profile"]; !ok {
 			t.Error("Expected Profile relationship")
 		} else {
-			if profile.From != "User" {
-				t.Errorf("Expected From='User', got '%s'", profile.From)
+			if profile.From != metadata.FQDN {
+				t.Errorf("Expected From='%s', got '%s'", metadata.FQDN, profile.From)
 			}
-			if profile.To != "Profile" {
-				t.Errorf("Expected To='Profile', got '%s'", profile.To)
+			if profile.To != profileMeta.FQDN {
+				t.Errorf("Expected To='%s', got '%s'", profileMeta.FQDN, profile.To)
 			}
 			if profile.Kind != RelationshipReference {
 				t.Errorf("Expected Kind='reference', got '%s'", profile.Kind)
@@ -89,8 +92,8 @@ func TestRelationshipExtraction(t *testing.T) {
 		if orders, ok := relMap["Orders"]; !ok {
 			t.Error("Expected Orders relationship")
 		} else {
-			if orders.To != "Order" {
-				t.Errorf("Expected To='Order', got '%s'", orders.To)
+			if orders.To != orderMeta.FQDN {
+				t.Errorf("Expected To='%s', got '%s'", orderMeta.FQDN, orders.To)
 			}
 			if orders.Kind != RelationshipCollection {
 				t.Errorf("Expected Kind='collection', got '%s'", orders.Kind)
@@ -101,8 +104,8 @@ func TestRelationshipExtraction(t *testing.T) {
 		if settings, ok := relMap["Settings"]; !ok {
 			t.Error("Expected Settings embedding relationship")
 		} else {
-			if settings.To != "Settings" {
-				t.Errorf("Expected To='Settings', got '%s'", settings.To)
+			if settings.To != settingsMeta.FQDN {
+				t.Errorf("Expected To='%s', got '%s'", settingsMeta.FQDN, settings.To)
 			}
 			if settings.Kind != RelationshipEmbedding {
 				t.Errorf("Expected Kind='embedding', got '%s'", settings.Kind)
@@ -116,30 +119,32 @@ func TestRelationshipExtraction(t *testing.T) {
 	})
 
 	t.Run("NestedRelationships", func(t *testing.T) {
-		// Inspect Profile to get its relationships
+		// Inspect Profile and Address to get FQDNs
 		profileMeta := Inspect[Profile]()
+		addressMeta := Inspect[Address]()
 
 		// Should have relationship to Address
 		var hasAddress bool
 		for _, rel := range profileMeta.Relationships {
-			if rel.To == "Address" {
+			if rel.To == addressMeta.FQDN {
 				hasAddress = true
 				break
 			}
 		}
 
 		if !hasAddress {
-			t.Error("Expected Profile to have relationship to Address")
+			t.Errorf("Expected Profile to have relationship to Address (%s)", addressMeta.FQDN)
 		}
 	})
 
 	t.Run("MapRelationships", func(t *testing.T) {
-		// Inspect Settings to check map relationships
+		// Inspect Settings and Data to get FQDNs
 		settingsMeta := Inspect[Settings]()
+		dataMeta := Inspect[Data]()
 
 		var hasMetadata bool
 		for _, rel := range settingsMeta.Relationships {
-			if rel.Field == "Metadata" && rel.To == "Data" {
+			if rel.Field == "Metadata" && rel.To == dataMeta.FQDN {
 				hasMetadata = true
 				if rel.Kind != RelationshipMap {
 					t.Errorf("Expected map relationship, got '%s'", rel.Kind)
@@ -149,7 +154,7 @@ func TestRelationshipExtraction(t *testing.T) {
 		}
 
 		if !hasMetadata {
-			t.Error("Expected Settings to have map relationship to Data")
+			t.Errorf("Expected Settings to have map relationship to Data (%s)", dataMeta.FQDN)
 		}
 	})
 
@@ -160,13 +165,14 @@ func TestRelationshipExtraction(t *testing.T) {
 		}
 
 		metadata := Inspect[LocalType]()
+		externalMeta := Inspect[ExternalDB]()
 
 		// ExternalDB is actually in the same package (test file), so it WILL be included
 		// This test is actually incorrect - let's fix it by checking what we got
 		if len(metadata.Relationships) != 1 {
 			t.Errorf("Expected 1 relationship (ExternalDB is in same package), got %d", len(metadata.Relationships))
-		} else if metadata.Relationships[0].To != "ExternalDB" {
-			t.Errorf("Expected relationship to ExternalDB, got %s", metadata.Relationships[0].To)
+		} else if metadata.Relationships[0].To != externalMeta.FQDN {
+			t.Errorf("Expected relationship to ExternalDB (%s), got %s", externalMeta.FQDN, metadata.Relationships[0].To)
 		}
 	})
 }
@@ -174,9 +180,9 @@ func TestRelationshipExtraction(t *testing.T) {
 func TestRelationshipAPIs(t *testing.T) {
 	// Reset and inspect our test types
 	instance.cache.Clear()
-	Inspect[User]()
-	Inspect[Profile]()
-	Inspect[Order]()
+	userMeta := Inspect[User]()
+	profileMeta := Inspect[Profile]()
+	orderMeta := Inspect[Order]()
 	Inspect[OrderItem]()
 
 	t.Run("GetRelationships", func(t *testing.T) {
@@ -186,22 +192,22 @@ func TestRelationshipAPIs(t *testing.T) {
 			t.Error("Expected User to have relationships")
 		}
 
-		// Check specific relationships exist
+		// Check specific relationships exist (using FQDNs)
 		var hasProfile, hasOrders bool
 		for _, rel := range relationships {
-			if rel.To == "Profile" {
+			if rel.To == profileMeta.FQDN {
 				hasProfile = true
 			}
-			if rel.To == "Order" {
+			if rel.To == orderMeta.FQDN {
 				hasOrders = true
 			}
 		}
 
 		if !hasProfile {
-			t.Error("Expected User to have relationship to Profile")
+			t.Errorf("Expected User to have relationship to Profile (%s)", profileMeta.FQDN)
 		}
 		if !hasOrders {
-			t.Error("Expected User to have relationship to Order")
+			t.Errorf("Expected User to have relationship to Order (%s)", orderMeta.FQDN)
 		}
 	})
 
@@ -209,17 +215,17 @@ func TestRelationshipAPIs(t *testing.T) {
 		// Find what references Order
 		references := GetReferencedBy[Order]()
 
-		// User should reference Order through Orders field
+		// User should reference Order through Orders field (using FQDN)
 		var foundUser bool
 		for _, ref := range references {
-			if ref.From == "User" && ref.Field == "Orders" {
+			if ref.From == userMeta.FQDN && ref.Field == "Orders" {
 				foundUser = true
 				break
 			}
 		}
 
 		if !foundUser {
-			t.Error("Expected Order to be referenced by User.Orders")
+			t.Errorf("Expected Order to be referenced by User.Orders (from %s)", userMeta.FQDN)
 		}
 	})
 
@@ -245,6 +251,7 @@ func TestRelationshipEdgeCases(t *testing.T) {
 		}
 
 		metadata := Inspect[Container]()
+		itemMeta := Inspect[Item]()
 
 		// Should detect relationship through slice of pointers
 		if len(metadata.Relationships) != 1 {
@@ -252,8 +259,8 @@ func TestRelationshipEdgeCases(t *testing.T) {
 		}
 
 		rel := metadata.Relationships[0]
-		if rel.To != "Item" {
-			t.Errorf("Expected relationship to Item, got %s", rel.To)
+		if rel.To != itemMeta.FQDN {
+			t.Errorf("Expected relationship to Item (%s), got %s", itemMeta.FQDN, rel.To)
 		}
 		if rel.Kind != RelationshipCollection {
 			t.Errorf("Expected collection relationship, got %s", rel.Kind)
@@ -269,6 +276,7 @@ func TestRelationshipEdgeCases(t *testing.T) {
 		}
 
 		metadata := Inspect[Registry]()
+		serviceMeta := Inspect[Service]()
 
 		// Should detect map relationship
 		if len(metadata.Relationships) != 1 {
@@ -276,8 +284,8 @@ func TestRelationshipEdgeCases(t *testing.T) {
 		}
 
 		rel := metadata.Relationships[0]
-		if rel.To != "Service" {
-			t.Errorf("Expected relationship to Service, got %s", rel.To)
+		if rel.To != serviceMeta.FQDN {
+			t.Errorf("Expected relationship to Service (%s), got %s", serviceMeta.FQDN, rel.To)
 		}
 		if rel.Kind != RelationshipMap {
 			t.Errorf("Expected map relationship, got %s", rel.Kind)
@@ -294,18 +302,19 @@ func TestRelationshipEdgeCases(t *testing.T) {
 		}
 
 		metadata := Inspect[Extended]()
+		baseMeta := Inspect[Base]()
 
 		// Should detect embedding relationship
 		var found bool
 		for _, rel := range metadata.Relationships {
-			if rel.To == "Base" && rel.Kind == RelationshipEmbedding {
+			if rel.To == baseMeta.FQDN && rel.Kind == RelationshipEmbedding {
 				found = true
 				break
 			}
 		}
 
 		if !found {
-			t.Error("Expected embedding relationship to Base")
+			t.Errorf("Expected embedding relationship to Base (%s)", baseMeta.FQDN)
 		}
 	})
 }
@@ -323,6 +332,14 @@ func TestScan(t *testing.T) {
 			t.Errorf("Expected TypeName 'User', got %s", metadata.TypeName)
 		}
 
+		// Get FQDNs for related types
+		profileMeta := Inspect[Profile]()
+		orderMeta := Inspect[Order]()
+		settingsMeta := Inspect[Settings]()
+		addressMeta := Inspect[Address]()
+		orderItemMeta := Inspect[OrderItem]()
+		dataMeta := Inspect[Data]()
+
 		// Verify related types were also cached
 		types := Browse()
 		typeMap := make(map[string]bool)
@@ -331,38 +348,38 @@ func TestScan(t *testing.T) {
 		}
 
 		// User should be cached
-		if !typeMap["User"] {
-			t.Error("Expected User to be cached")
+		if !typeMap[metadata.FQDN] {
+			t.Errorf("Expected User (%s) to be cached", metadata.FQDN)
 		}
 
 		// Profile should be cached (referenced by User)
-		if !typeMap["Profile"] {
-			t.Error("Expected Profile to be cached")
+		if !typeMap[profileMeta.FQDN] {
+			t.Errorf("Expected Profile (%s) to be cached", profileMeta.FQDN)
 		}
 
 		// Order should be cached (collection in User)
-		if !typeMap["Order"] {
-			t.Error("Expected Order to be cached")
+		if !typeMap[orderMeta.FQDN] {
+			t.Errorf("Expected Order (%s) to be cached", orderMeta.FQDN)
 		}
 
 		// Settings should be cached (embedded in User)
-		if !typeMap["Settings"] {
-			t.Error("Expected Settings to be cached")
+		if !typeMap[settingsMeta.FQDN] {
+			t.Errorf("Expected Settings (%s) to be cached", settingsMeta.FQDN)
 		}
 
 		// Address should be cached (referenced by Profile)
-		if !typeMap["Address"] {
-			t.Error("Expected Address to be cached (transitive)")
+		if !typeMap[addressMeta.FQDN] {
+			t.Errorf("Expected Address (%s) to be cached (transitive)", addressMeta.FQDN)
 		}
 
 		// OrderItem should be cached (referenced by Order)
-		if !typeMap["OrderItem"] {
-			t.Error("Expected OrderItem to be cached (transitive)")
+		if !typeMap[orderItemMeta.FQDN] {
+			t.Errorf("Expected OrderItem (%s) to be cached (transitive)", orderItemMeta.FQDN)
 		}
 
 		// Data should be cached (map value in Settings)
-		if !typeMap["Data"] {
-			t.Error("Expected Data to be cached")
+		if !typeMap[dataMeta.FQDN] {
+			t.Errorf("Expected Data (%s) to be cached", dataMeta.FQDN)
 		}
 	})
 
@@ -395,7 +412,8 @@ func TestScan(t *testing.T) {
 		instance.cache.Clear()
 
 		// Scan should only include types from the same module
-		_ = Scan[User]()
+		userMeta := Scan[User]()
+		profileMeta := Inspect[Profile]()
 
 		// All sentinel test types should be included
 		types := Browse()
@@ -404,12 +422,12 @@ func TestScan(t *testing.T) {
 			typeMap[name] = true
 		}
 
-		// Verify our types are included
-		if !typeMap["User"] {
-			t.Error("Expected User to be cached")
+		// Verify our types are included (using FQDNs)
+		if !typeMap[userMeta.FQDN] {
+			t.Errorf("Expected User (%s) to be cached", userMeta.FQDN)
 		}
-		if !typeMap["Profile"] {
-			t.Error("Expected Profile to be cached")
+		if !typeMap[profileMeta.FQDN] {
+			t.Errorf("Expected Profile (%s) to be cached", profileMeta.FQDN)
 		}
 
 		// Note: We can't test exclusion of truly external types in test
@@ -441,11 +459,12 @@ func TestCreateRelationshipIfInDomain(t *testing.T) {
 
 	t.Run("same package domain", func(t *testing.T) {
 		metadata := Inspect[User]()
+		profileMeta := Inspect[Profile]()
 
 		// User and Profile are in same package
 		found := false
 		for _, rel := range metadata.Relationships {
-			if rel.To == "Profile" {
+			if rel.To == profileMeta.FQDN {
 				found = true
 				if rel.ToPackage != metadata.PackageName {
 					t.Errorf("expected same package, got From=%s To=%s", metadata.PackageName, rel.ToPackage)
@@ -454,7 +473,7 @@ func TestCreateRelationshipIfInDomain(t *testing.T) {
 		}
 
 		if !found {
-			t.Error("expected relationship to Profile in same package")
+			t.Errorf("expected relationship to Profile (%s) in same package", profileMeta.FQDN)
 		}
 	})
 }
@@ -735,6 +754,7 @@ func TestExtractRelationship(t *testing.T) {
 
 		typ := reflect.TypeOf(Container{})
 		field := typ.Field(0)
+		valueMeta := Inspect[Value]()
 
 		rel := s.extractRelationship(field, typ.PkgPath())
 
@@ -744,8 +764,8 @@ func TestExtractRelationship(t *testing.T) {
 		if rel.Kind != RelationshipMap {
 			t.Errorf("expected Kind='map', got '%s'", rel.Kind)
 		}
-		if rel.To != "Value" {
-			t.Errorf("expected To='Value', got '%s'", rel.To)
+		if rel.To != valueMeta.FQDN {
+			t.Errorf("expected To='%s', got '%s'", valueMeta.FQDN, rel.To)
 		}
 	})
 
@@ -863,6 +883,8 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(Outer{})
+		innerType := reflect.TypeOf(Inner{})
+		innerFQDN := getFQDN(innerType)
 		visited := make(map[string]bool)
 
 		// Extract relationships in Scan mode (with visited map)
@@ -873,14 +895,14 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 			t.Fatalf("expected 1 relationship, got %d", len(relationships))
 		}
 
-		// Inner should have been extracted recursively
-		if !visited["Inner"] {
-			t.Error("expected Inner to be visited during Scan mode")
+		// Inner should have been extracted recursively (using FQDN)
+		if !visited[innerFQDN] {
+			t.Errorf("expected Inner (%s) to be visited during Scan mode", innerFQDN)
 		}
 
-		// Inner should be cached
-		if _, exists := instance.cache.Get("Inner"); !exists {
-			t.Error("expected Inner to be cached during Scan mode")
+		// Inner should be cached (using FQDN)
+		if _, exists := instance.cache.Get(innerFQDN); !exists {
+			t.Errorf("expected Inner (%s) to be cached during Scan mode", innerFQDN)
 		}
 	})
 
@@ -900,6 +922,8 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(OuterB{})
+		innerType := reflect.TypeOf(InnerB{})
+		innerFQDN := getFQDN(innerType)
 
 		// Extract relationships in Inspect mode (nil visited map)
 		relationships := s.extractRelationships(typ, nil)
@@ -909,9 +933,9 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 			t.Fatalf("expected 1 relationship, got %d", len(relationships))
 		}
 
-		// InnerB should NOT be cached in Inspect mode
-		if _, exists := instance.cache.Get("InnerB"); exists {
-			t.Error("InnerB should not be cached in Inspect mode")
+		// InnerB should NOT be cached in Inspect mode (using FQDN)
+		if _, exists := instance.cache.Get(innerFQDN); exists {
+			t.Errorf("InnerB (%s) should not be cached in Inspect mode", innerFQDN)
 		}
 	})
 
@@ -960,6 +984,8 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(Container{})
+		localType := reflect.TypeOf(LocalType{})
+		localFQDN := getFQDN(localType)
 		visited := make(map[string]bool)
 
 		// Extract relationships - LocalType is in same module so should recurse
@@ -969,9 +995,9 @@ func TestExtractRelationshipsScanMode(t *testing.T) {
 			t.Fatalf("expected 1 relationship, got %d", len(relationships))
 		}
 
-		// LocalType should be cached since it's in same module
-		if _, exists := instance.cache.Get("LocalType"); !exists {
-			t.Error("LocalType should be cached in same module domain")
+		// LocalType should be cached since it's in same module (using FQDN)
+		if _, exists := instance.cache.Get(localFQDN); !exists {
+			t.Errorf("LocalType (%s) should be cached in same module domain", localFQDN)
 		}
 	})
 }

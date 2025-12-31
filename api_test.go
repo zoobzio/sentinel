@@ -321,10 +321,10 @@ func TestTag(t *testing.T) {
 
 func TestBrowse(t *testing.T) {
 	t.Run("browse registered types", func(t *testing.T) {
-		// Register some types
-		Inspect[SimpleStruct]()
-		Inspect[TestUser]()
-		Inspect[NestedStruct]()
+		// Register some types and get their FQDNs
+		simpleMeta := Inspect[SimpleStruct]()
+		userMeta := Inspect[TestUser]()
+		nestedMeta := Inspect[NestedStruct]()
 
 		types := Browse()
 
@@ -333,20 +333,20 @@ func TestBrowse(t *testing.T) {
 			t.Fatalf("expected at least 3 types, got %d: %v", len(types), types)
 		}
 
-		// Check that all expected types are present
+		// Check that all expected types are present (using FQDNs)
 		typeMap := make(map[string]bool)
 		for _, typeName := range types {
 			typeMap[typeName] = true
 		}
 
-		if !typeMap["SimpleStruct"] {
-			t.Error("SimpleStruct not found in Browse results")
+		if !typeMap[simpleMeta.FQDN] {
+			t.Errorf("SimpleStruct (%s) not found in Browse results", simpleMeta.FQDN)
 		}
-		if !typeMap["TestUser"] {
-			t.Error("TestUser not found in Browse results")
+		if !typeMap[userMeta.FQDN] {
+			t.Errorf("TestUser (%s) not found in Browse results", userMeta.FQDN)
 		}
-		if !typeMap["NestedStruct"] {
-			t.Error("NestedStruct not found in Browse results")
+		if !typeMap[nestedMeta.FQDN] {
+			t.Errorf("NestedStruct (%s) not found in Browse results", nestedMeta.FQDN)
 		}
 	})
 
@@ -372,11 +372,11 @@ func TestLookup(t *testing.T) {
 
 		original := Inspect[LookupTestStruct]()
 
-		// Now lookup the cached metadata
-		retrieved, found := Lookup("LookupTestStruct")
+		// Now lookup the cached metadata using FQDN
+		retrieved, found := Lookup(original.FQDN)
 
 		if !found {
-			t.Fatal("expected to find cached metadata")
+			t.Fatalf("expected to find cached metadata for %s", original.FQDN)
 		}
 
 		if retrieved.TypeName != original.TypeName {
@@ -406,19 +406,19 @@ func TestLookup(t *testing.T) {
 			Value string `json:"value"`
 		}
 
-		Inspect[ClearTestStruct]()
+		original := Inspect[ClearTestStruct]()
 
-		// Verify it exists
-		_, found := Lookup("ClearTestStruct")
+		// Verify it exists using FQDN
+		_, found := Lookup(original.FQDN)
 		if !found {
-			t.Fatal("expected to find type before clear")
+			t.Fatalf("expected to find type %s before clear", original.FQDN)
 		}
 
 		// Clear cache
 		instance.cache.Clear()
 
 		// Should no longer exist
-		_, found = Lookup("ClearTestStruct")
+		_, found = Lookup(original.FQDN)
 		if found {
 			t.Error("expected not to find type after clear")
 		}
@@ -449,9 +449,9 @@ func TestSchema(t *testing.T) {
 			t.Fatalf("expected at least 2 types in schema, got %d", len(schema))
 		}
 
-		// Verify our types are in the schema
-		if retrievedUser, exists := schema["SchemaTestUser"]; !exists {
-			t.Error("SchemaTestUser not found in schema")
+		// Verify our types are in the schema (using FQDN as key)
+		if retrievedUser, exists := schema[userMeta.FQDN]; !exists {
+			t.Errorf("SchemaTestUser (%s) not found in schema", userMeta.FQDN)
 		} else {
 			if retrievedUser.TypeName != userMeta.TypeName {
 				t.Errorf("schema user type mismatch: got %s, want %s",
@@ -463,8 +463,8 @@ func TestSchema(t *testing.T) {
 			}
 		}
 
-		if retrievedProduct, exists := schema["SchemaTestProduct"]; !exists {
-			t.Error("SchemaTestProduct not found in schema")
+		if retrievedProduct, exists := schema[productMeta.FQDN]; !exists {
+			t.Errorf("SchemaTestProduct (%s) not found in schema", productMeta.FQDN)
 		} else {
 			if retrievedProduct.TypeName != productMeta.TypeName {
 				t.Errorf("schema product type mismatch: got %s, want %s",

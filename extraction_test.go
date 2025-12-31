@@ -247,17 +247,18 @@ func TestExtractMetadataInternal(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(CircularA{})
+		fqdn := getFQDN(typ)
 		visited := make(map[string]bool)
 
-		// Mark as already visited
-		visited["CircularA"] = true
+		// Mark as already visited using FQDN
+		visited[fqdn] = true
 
 		// Should return cached or empty metadata
 		_ = s.extractMetadataInternal(typ, visited)
 
 		// The type should be skipped due to already being visited
 		// If cache exists, it returns cached, otherwise empty
-		if visited["CircularA"] != true {
+		if visited[fqdn] != true {
 			t.Error("expected type to remain in visited map")
 		}
 	})
@@ -275,10 +276,11 @@ func TestExtractMetadataInternal(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(UncachedType{})
+		fqdn := getFQDN(typ)
 		visited := make(map[string]bool)
 
-		// Mark as visited but don't cache it
-		visited["UncachedType"] = true
+		// Mark as visited but don't cache it (using FQDN)
+		visited[fqdn] = true
 
 		// Should return empty metadata since it's visited but not in cache
 		metadata := s.extractMetadataInternal(typ, visited)
@@ -301,20 +303,22 @@ func TestExtractMetadataInternal(t *testing.T) {
 		}
 
 		typ := reflect.TypeOf(CycleType{})
+		fqdn := getFQDN(typ)
 
-		// Pre-populate cache with metadata
+		// Pre-populate cache with metadata using FQDN as key
 		cachedMeta := Metadata{
+			FQDN:        fqdn,
 			TypeName:    "CycleType",
 			PackageName: "sentinel",
 			Fields: []FieldMetadata{
 				{Name: "Name", Type: "string", Tags: map[string]string{"json": "name"}},
 			},
 		}
-		instance.cache.Set("CycleType", cachedMeta)
+		instance.cache.Set(fqdn, cachedMeta)
 
 		// Mark as visited AND cached - simulates hitting same type twice in circular ref
 		visited := make(map[string]bool)
-		visited["CycleType"] = true
+		visited[fqdn] = true
 
 		// Should return cached metadata
 		metadata := s.extractMetadataInternal(typ, visited)
@@ -344,13 +348,15 @@ func TestExtractMetadataInternal(t *testing.T) {
 		}
 
 		rootType := reflect.TypeOf(Root{})
+		relatedType := reflect.TypeOf(Related{})
+		relatedFQDN := getFQDN(relatedType)
 
 		// First call - populate cache without visited map (Inspect mode)
 		_ = s.extractMetadataInternal(rootType, nil)
 
 		// Related should NOT be in cache yet
-		if _, exists := instance.cache.Get("Related"); exists {
-			t.Error("Related should not be cached after Inspect mode")
+		if _, exists := instance.cache.Get(relatedFQDN); exists {
+			t.Errorf("Related (%s) should not be cached after Inspect mode", relatedFQDN)
 		}
 
 		// Second call with visited map (Scan mode) - should trigger relationship scan
@@ -358,8 +364,8 @@ func TestExtractMetadataInternal(t *testing.T) {
 		_ = s.extractMetadataInternal(rootType, visited)
 
 		// Now Related should be in cache
-		if _, exists := instance.cache.Get("Related"); !exists {
-			t.Error("Related should be cached after Scan mode on cached type")
+		if _, exists := instance.cache.Get(relatedFQDN); !exists {
+			t.Errorf("Related (%s) should be cached after Scan mode on cached type", relatedFQDN)
 		}
 	})
 
