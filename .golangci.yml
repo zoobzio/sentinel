@@ -9,36 +9,36 @@ run:
 linters:
   enable:
     # Security-critical linters
-    - gosec        # Comprehensive security analyzer
-    - errorlint    # Proper error handling patterns
-    - noctx        # HTTP requests must have context
-    - bodyclose    # HTTP response body must be closed
+    - gosec # Comprehensive security analyzer
+    - errorlint # Proper error handling patterns
+    - noctx # HTTP requests must have context
+    - bodyclose # HTTP response body must be closed
     - sqlclosecheck # SQL rows/statements must be closed
 
     # Code quality with security implications
-    - govet        # Suspicious constructs
-    - ineffassign  # Detect ineffectual assignments
-    - staticcheck  # Advanced static analysis
-    - unused       # Unused code detection
+    - govet # Suspicious constructs
+    - ineffassign # Detect ineffectual assignments
+    - staticcheck # Advanced static analysis
+    - unused # Unused code detection
 
     # Error handling
-    - errcheck     # Unchecked errors
-    - errchkjson   # JSON marshaling errors
+    - errcheck # Unchecked errors
+    - errchkjson # JSON marshaling errors
     - wastedassign # Wasted assignments
 
     # Best practices
-    - gocritic     # Opinionated linter
-    - revive       # Fast, configurable linter
-    - unconvert    # Unnecessary type conversions
-    - dupl         # Code duplication
-    - goconst      # Repeated strings as constants
-    - godot        # Comment sentences
-    - godox        # TODO/FIXME comments
-    - misspell     # Spelling mistakes
-    - nakedret     # Naked returns
-    - prealloc     # Slice capacity hints
-    - predeclared  # Shadowing predeclared identifiers
-    - copyloopvar  # Loop variable capture
+    - gocritic # Opinionated linter
+    - revive # Fast, configurable linter
+    - unconvert # Unnecessary type conversions
+    - dupl # Code duplication
+    - goconst # Repeated strings as constants
+    - godot # Comment sentences
+    - godox # TODO/FIXME comments
+    - misspell # Spelling mistakes
+    - nakedret # Naked returns
+    - prealloc # Slice capacity hints
+    - predeclared # Shadowing predeclared identifiers
+    - copyloopvar # Loop variable capture
 
   exclusions:
     rules:
@@ -60,7 +60,7 @@ linters:
       severity: medium
       confidence: medium
       excludes:
-        - G104  # We'll use errcheck instead
+        - G104 # We'll use errcheck instead
       config:
         global:
           audit: true
@@ -72,7 +72,7 @@ linters:
       check-type-assertions: true
       check-blank: true
       exclude-functions:
-        - (io.Closer).Close  # Handled by bodyclose
+        - (io.Closer).Close # Handled by bodyclose
 
     gocritic:
       enabled-checks:

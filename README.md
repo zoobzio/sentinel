@@ -153,10 +153,10 @@ erDiagram
   - [Scanning](docs/3.guides/1.scanning.md) — Inspect vs Scan, module boundaries
   - [Tags](docs/3.guides/2.tags.md) — custom tag registration
   - [Testing](docs/3.guides/3.testing.md) — testing with sentinel
-- **Cookbooks**
-  - [ERD Diagrams](docs/4.cookbooks/1.erd-diagrams.md) — visualize domain models with erd
-  - [Database Schemas](docs/4.cookbooks/2.database-schemas.md) — structurally safe queries with cereal
-  - [API Documentation](docs/4.cookbooks/3.api-documentation.md) — automatic OpenAPI generation with rocco
+- **Cookbook**
+  - [ERD Diagrams](docs/4.cookbook/1.erd-diagrams.md) — visualize domain models with erd
+  - [Database Schemas](docs/4.cookbook/2.database-schemas.md) — structurally safe queries with cereal
+  - [API Documentation](docs/4.cookbook/3.api-documentation.md) — automatic OpenAPI generation with rocco
 - **Reference**
   - [API](docs/5.reference/1.api.md) — complete function documentation
   - [Types](docs/5.reference/2.types.md) — Metadata, FieldMetadata, TypeRelationship
