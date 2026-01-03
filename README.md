@@ -149,6 +149,7 @@ erDiagram
 - **Learn**
   - [Quickstart](docs/2.learn/1.quickstart.md) — get started in 5 minutes
   - [Concepts](docs/2.learn/2.concepts.md) — metadata, relationships, caching
+  - [Architecture](docs/2.learn/3.architecture.md) — internal design and components
 - **Guides**
   - [Scanning](docs/3.guides/1.scanning.md) — Inspect vs Scan, module boundaries
   - [Tags](docs/3.guides/2.tags.md) — custom tag registration
