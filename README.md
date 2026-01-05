@@ -13,7 +13,7 @@ Zero-dependency struct introspection for Go.
 
 Extract struct metadata once, cache it permanently, and discover relationships between types.
 
-## The Type Graph
+## Structured Type Intelligence
 
 ```go
 type User struct {
@@ -110,11 +110,11 @@ func main() {
     for _, rel := range metadata.Relationships {
         fmt.Printf("%s → %s (%s)\n", metadata.TypeName, rel.To, rel.Kind)
     }
-    // User → Order (collection)
+    // User → main.Order (collection)
 
     // Everything is cached
     fmt.Println(sentinel.Browse())
-    // [github.com/app/models.User github.com/app/models.Order]
+    // [main.User main.Order]
 
     // Export the full schema
     schema := sentinel.Schema()
@@ -151,12 +151,6 @@ Your struct definitions become the single source of truth. Downstream tools cons
 - **Entity diagrams** — Visualize domain models directly from type relationships
 - **Database schemas** — Generate DDL and type-safe queries from struct tags
 - **API documentation** — Produce OpenAPI specs from request/response types
-
-The [zoobzio ecosystem](https://github.com/zoobzio) implements this pattern:
-
-- **[erd](https://github.com/zoobzio/erd)** — ERD generation from sentinel schemas. See [ERD Diagrams](docs/4.cookbook/1.erd-diagrams.md).
-- **[soy](https://github.com/zoobzio/soy)** — Type-safe query building. See [Database Schemas](docs/4.cookbook/2.database-schemas.md).
-- **[rocco](https://github.com/zoobzio/rocco)** — OpenAPI generation. See [API Documentation](docs/4.cookbook/3.api-documentation.md).
 
 ## Documentation
 
