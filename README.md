@@ -40,12 +40,22 @@ field := metadata.Fields[0]
 One call extracts metadata for `User` and every type it touches — `Profile`, `Order`, and anything they reference. All cached permanently.
 
 ```go
-sentinel.Browse()
-// ["github.com/app/models.User", "github.com/app/models.Profile", "github.com/app/models.Order"]
+types := sentinel.Browse()
+// [
+//   "github.com/app/models.User",
+//   "github.com/app/models.Profile",
+//   "github.com/app/models.Order",
+// ]
 
-sentinel.GetRelationships[User]()
-// User → Profile (reference)
-// User → Order (collection)
+relationships := sentinel.GetRelationships[User]()
+// []TypeRelationship (2 relationships)
+
+rel := relationships[0]
+// rel.From      → "User"
+// rel.To        → "Profile"
+// rel.Field     → "Profile"
+// rel.Kind      → "reference"
+// rel.ToPackage → "github.com/app/models"
 ```
 
 Types don't change at runtime. Neither does their metadata.
