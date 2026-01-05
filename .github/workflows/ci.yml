@@ -23,7 +23,7 @@ jobs:
         go-version: ${{ matrix.go-version }}
 
     - name: Test sentinel core
-      run: go test -v -race -tags testing ./...
+      run: make test
 
   lint:
     name: Lint
@@ -67,7 +67,7 @@ jobs:
         go-version: '1.25'
 
     - name: Run Gosec Security Scanner
-      uses: securego/gosec@master
+      uses: securego/gosec@v2.22.11
       with:
         args: '-fmt sarif -out gosec-results.sarif --no-fail ./...'
 

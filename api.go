@@ -16,9 +16,9 @@ var instance *Sentinel
 
 // Initialize the global sentinel instance.
 func init() {
-	// Use PermanentCache since types are immutable at runtime
+	// Cache metadata permanently since types are immutable at runtime
 	instance = &Sentinel{
-		cache:          NewPermanentCache(),
+		cache:          NewCache(),
 		registeredTags: make(map[string]bool),
 		modulePath:     detectModulePath(),
 	}
@@ -39,7 +39,7 @@ func detectModulePath() string {
 //nolint:govet // Field order is intentional for clarity
 type Sentinel struct {
 	// Cache for metadata storage
-	cache Cache
+	cache *Cache
 
 	// Tag registry for custom tags
 	registeredTags map[string]bool
@@ -154,12 +154,6 @@ func Lookup(typeName string) (Metadata, bool) {
 // This is useful for generating documentation, exporting schemas, or analyzing
 // the complete type graph of inspected types.
 func Schema() map[string]Metadata {
-	schema := make(map[string]Metadata)
-	for _, typeName := range instance.cache.Keys() {
-		if metadata, exists := instance.cache.Get(typeName); exists {
-			schema[typeName] = metadata
-		}
-	}
-	return schema
+	return instance.cache.All()
 }
 

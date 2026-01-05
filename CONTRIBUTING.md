@@ -22,7 +22,7 @@ Thank you for your interest in contributing to Sentinel! We welcome contribution
 ### Running Tests
 ```bash
 make test        # Run all tests
-make bench       # Run benchmarks
+make test-bench  # Run benchmarks
 make coverage    # Generate coverage report
 make lint        # Run linters
 make check       # Run tests and lint

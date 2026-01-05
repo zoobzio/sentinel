@@ -9,6 +9,6 @@ func Reset() {
 	instance.tagMutex.Lock()
 	defer instance.tagMutex.Unlock()
 
-	instance.cache = NewPermanentCache()
+	instance.cache = NewCache()
 	instance.registeredTags = make(map[string]bool)
 }

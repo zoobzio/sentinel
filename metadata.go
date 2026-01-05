@@ -90,7 +90,7 @@ type TypeRelationship struct {
 	From      string `json:"from"`       // Source type name
 	To        string `json:"to"`         // Target type name
 	Field     string `json:"field"`      // Field creating the relationship
-	Kind      string `json:"kind"`       // "reference", "collection", "embedding"
+	Kind      string `json:"kind"`       // "reference", "collection", "embedding", "map"
 	ToPackage string `json:"to_package"` // Target type's package path
 }
 

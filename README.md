@@ -96,7 +96,7 @@ func main() {
 
     // Type information
     fmt.Println(metadata.TypeName) // "User"
-    fmt.Println(metadata.FQDN)     // "github.com/app/models.User"
+    fmt.Println(metadata.FQDN)     // "main.User" (reflects actual package path)
 
     // Field metadata
     for _, field := range metadata.Fields {

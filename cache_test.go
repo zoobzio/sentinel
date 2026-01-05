@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-func TestMemoryCache(t *testing.T) {
+func TestCache(t *testing.T) {
 	t.Run("basic operations", func(t *testing.T) {
-		cache := NewMemoryCache()
+		cache := NewCache()
 
 		// Test empty cache
 		if size := cache.Size(); size != 0 {
@@ -46,7 +46,7 @@ func TestMemoryCache(t *testing.T) {
 	})
 
 	t.Run("Keys method", func(t *testing.T) {
-		cache := NewMemoryCache()
+		cache := NewCache()
 
 		// Empty cache
 		keys := cache.Keys()
@@ -77,7 +77,7 @@ func TestMemoryCache(t *testing.T) {
 	})
 
 	t.Run("Clear method", func(t *testing.T) {
-		cache := NewMemoryCache()
+		cache := NewCache()
 
 		// Add entries
 		cache.Set("Type1", Metadata{TypeName: "Type1"})
@@ -104,7 +104,7 @@ func TestMemoryCache(t *testing.T) {
 	})
 
 	t.Run("overwrite existing entry", func(t *testing.T) {
-		cache := NewMemoryCache()
+		cache := NewCache()
 
 		// Set initial value
 		metadata1 := Metadata{
@@ -132,8 +132,41 @@ func TestMemoryCache(t *testing.T) {
 		}
 	})
 
+	t.Run("All method", func(t *testing.T) {
+		cache := NewCache()
+
+		// Empty cache
+		all := cache.All()
+		if len(all) != 0 {
+			t.Errorf("expected empty map, got %d entries", len(all))
+		}
+
+		// Add entries
+		cache.Set("Type1", Metadata{TypeName: "Type1"})
+		cache.Set("Type2", Metadata{TypeName: "Type2"})
+
+		all = cache.All()
+		if len(all) != 2 {
+			t.Errorf("expected 2 entries, got %d", len(all))
+		}
+
+		// Verify contents
+		if all["Type1"].TypeName != "Type1" {
+			t.Error("expected Type1 in result")
+		}
+		if all["Type2"].TypeName != "Type2" {
+			t.Error("expected Type2 in result")
+		}
+
+		// Verify it's a copy (modifying returned map doesn't affect cache)
+		all["Type3"] = Metadata{TypeName: "Type3"}
+		if cache.Size() != 2 {
+			t.Error("expected cache to be unaffected by modification to returned map")
+		}
+	})
+
 	t.Run("concurrent access", func(_ *testing.T) {
-		cache := NewMemoryCache()
+		cache := NewCache()
 		var wg sync.WaitGroup
 
 		// Concurrent writes
@@ -173,125 +206,5 @@ func TestMemoryCache(t *testing.T) {
 
 		wg.Wait()
 		// If we get here without deadlock/panic, concurrent access is safe
-	})
-}
-
-// TestCacheInterface verifies that MemoryCache implements the Cache interface.
-func TestCacheInterface(_ *testing.T) {
-	var _ Cache = (*MemoryCache)(nil)
-	var _ Cache = NewMemoryCache()
-}
-
-func TestPermanentCache(t *testing.T) {
-	t.Run("basic operations", func(t *testing.T) {
-		cache := NewPermanentCache()
-
-		// Test empty cache
-		if size := cache.Size(); size != 0 {
-			t.Errorf("expected empty cache, got size %d", size)
-		}
-
-		// Test Set and Get
-		metadata := Metadata{
-			TypeName:    "TestType",
-			PackageName: "test",
-			Fields: []FieldMetadata{
-				{Name: "Field1", Type: "string", Tags: map[string]string{"json": "field1"}},
-			},
-		}
-		cache.Set("TestType", metadata)
-
-		// Verify Get returns the data
-		retrieved, exists := cache.Get("TestType")
-		if !exists {
-			t.Error("expected Get to return true after Set")
-		}
-		if retrieved.TypeName != metadata.TypeName {
-			t.Errorf("expected TypeName %s, got %s", metadata.TypeName, retrieved.TypeName)
-		}
-
-		// Test Size
-		if size := cache.Size(); size != 1 {
-			t.Errorf("expected size 1, got %d", size)
-		}
-	})
-
-	t.Run("Clear empties cache", func(t *testing.T) {
-		cache := NewPermanentCache()
-
-		// Add entries
-		cache.Set("Type1", Metadata{TypeName: "Type1"})
-		cache.Set("Type2", Metadata{TypeName: "Type2"})
-
-		// Clear should empty the cache
-		cache.Clear()
-
-		// Data should be gone
-		if size := cache.Size(); size != 0 {
-			t.Errorf("expected size 0 after clear, got %d", size)
-		}
-
-		_, exists := cache.Get("Type1")
-		if exists {
-			t.Error("expected Get to return false after Clear")
-		}
-	})
-
-	t.Run("Keys method", func(t *testing.T) {
-		cache := NewPermanentCache()
-
-		// Add multiple entries
-		cache.Set("Type1", Metadata{TypeName: "Type1"})
-		cache.Set("Type2", Metadata{TypeName: "Type2"})
-		cache.Set("Type3", Metadata{TypeName: "Type3"})
-
-		keys := cache.Keys()
-		if len(keys) != 3 {
-			t.Errorf("expected 3 keys, got %d", len(keys))
-		}
-
-		// Verify all keys are present
-		keyMap := make(map[string]bool)
-		for _, key := range keys {
-			keyMap[key] = true
-		}
-		for _, expected := range []string{"Type1", "Type2", "Type3"} {
-			if !keyMap[expected] {
-				t.Errorf("expected key %s not found", expected)
-			}
-		}
-	})
-
-	t.Run("concurrent access", func(_ *testing.T) {
-		cache := NewPermanentCache()
-		var wg sync.WaitGroup
-
-		// Concurrent writes
-		for i := 0; i < 100; i++ {
-			wg.Add(1)
-			go func(n int) {
-				defer wg.Done()
-				typeName := string(rune('A' + n%26))
-				cache.Set(typeName, Metadata{TypeName: typeName})
-			}(i)
-		}
-
-		// Concurrent reads
-		for i := 0; i < 100; i++ {
-			wg.Add(1)
-			go func(n int) {
-				defer wg.Done()
-				typeName := string(rune('A' + n%26))
-				cache.Get(typeName)
-			}(i)
-		}
-
-		wg.Wait()
-		// If we get here without deadlock/panic, concurrent access is safe
-	})
-
-	t.Run("implements Cache interface", func(_ *testing.T) {
-		var _ Cache = (*PermanentCache)(nil)
-		var _ Cache = NewPermanentCache()
 	})
 }
