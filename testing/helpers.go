@@ -1,3 +1,5 @@
+//go:build testing
+
 // Package testing provides shared test utilities for sentinel tests.
 package testing
 

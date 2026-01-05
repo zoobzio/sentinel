@@ -163,12 +163,3 @@ func Schema() map[string]Metadata {
 	return schema
 }
 
-// Reset clears the cache and tag registry.
-// This is primarily useful for test isolation.
-func Reset() {
-	instance.tagMutex.Lock()
-	defer instance.tagMutex.Unlock()
-
-	instance.cache = NewPermanentCache()
-	instance.registeredTags = make(map[string]bool)
-}
