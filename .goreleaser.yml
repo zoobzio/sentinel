@@ -95,41 +95,41 @@ release:
   github:
     owner: zoobzio
     name: sentinel
-  
+
   # Release name template
   name_template: "{{ .ProjectName }} v{{ .Version }}"
-  
+
   # Draft release initially (can be changed in workflow)
   draft: false
-  
+
   # Mark as prerelease for beta/rc versions
   prerelease: auto
-  
+
   # Release notes mode
   mode: append
-  
+
   # Custom release header
   header: |
     ## sentinel v{{ .Version }}
-    
+
     Struct metadata extraction and relationship discovery for Go.
-    
+
     ### Installation
-    
+
     ```bash
     go get github.com/zoobzio/sentinel@v{{ .Version }}
     ```
-    
+
     ### Requirements
-    - Go 1.23 or higher
-    
+    - Go 1.24 or higher
+
   # Custom release footer
   footer: |
     ---
-    
+
     **Full Documentation:** https://github.com/zoobzio/sentinel/tree/v{{ .Version }}/docs
     **Examples:** https://github.com/zoobzio/sentinel/tree/v{{ .Version }}/examples
-    
+
     Thanks to all contributors!
 
 # Announce releases (optional)
@@ -159,7 +159,7 @@ source:
 git:
   # Tag sort order
   tag_sort: -version:refname
-  
+
   # Skip commits from these paths in changelog
   ignore_tags:
     - ".*-rc.*"
