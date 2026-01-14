@@ -16,7 +16,7 @@ Thank you for your interest in contributing to Sentinel! We welcome contribution
 ## Development Setup
 
 ### Prerequisites
-- Go 1.23 or higher
+- Go 1.24 or higher
 - golangci-lint (install with `make install-tools`)
 
 ### Running Tests

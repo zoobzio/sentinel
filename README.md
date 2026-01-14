@@ -126,12 +126,12 @@ func main() {
 
 | Feature                | Description                                     | Docs                                           |
 | ---------------------- | ----------------------------------------------- | ---------------------------------------------- |
-| Metadata Extraction    | Fields, types, indices, categories, struct tags | [Concepts](docs/2.learn/2.concepts.md)         |
-| Relationship Discovery | References, collections, embeddings, maps       | [Scanning](docs/3.guides/1.scanning.md)        |
-| Permanent Caching      | Extract once, cached forever                    | [Architecture](docs/2.learn/3.architecture.md) |
-| Custom Tags            | Register additional struct tags                 | [Tags](docs/3.guides/2.tags.md)                |
-| Module-Aware Scanning  | Recursive extraction within module boundaries   | [Scanning](docs/3.guides/1.scanning.md)        |
-| Schema Export          | `Schema()` returns all cached metadata          | [API](docs/5.reference/1.api.md)               |
+| Metadata Extraction    | Fields, types, indices, categories, struct tags | [Concepts](docs/1.learn/3.concepts.md)         |
+| Relationship Discovery | References, collections, embeddings, maps       | [Scanning](docs/2.guides/1.scanning.md)        |
+| Permanent Caching      | Extract once, cached forever                    | [Architecture](docs/1.learn/4.architecture.md) |
+| Custom Tags            | Register additional struct tags                 | [Tags](docs/2.guides/2.tags.md)                |
+| Module-Aware Scanning  | Recursive extraction within module boundaries   | [Scanning](docs/2.guides/1.scanning.md)        |
+| Schema Export          | `Schema()` returns all cached metadata          | [API](docs/4.reference/1.api.md)               |
 
 ## Why sentinel?
 
@@ -154,22 +154,23 @@ Your struct definitions become the single source of truth. Downstream tools cons
 
 ## Documentation
 
-- [Overview](docs/1.overview.md) — design philosophy and architecture
 - **Learn**
-  - [Quickstart](docs/2.learn/1.quickstart.md) — get started in 5 minutes
-  - [Concepts](docs/2.learn/2.concepts.md) — metadata, relationships, caching
-  - [Architecture](docs/2.learn/3.architecture.md) — internal design and components
+  - [Overview](docs/1.learn/1.overview.md) — purpose and motivation
+  - [Quickstart](docs/1.learn/2.quickstart.md) — get started in 5 minutes
+  - [Concepts](docs/1.learn/3.concepts.md) — metadata, relationships, caching
+  - [Architecture](docs/1.learn/4.architecture.md) — internal design and components
 - **Guides**
-  - [Scanning](docs/3.guides/1.scanning.md) — Inspect vs Scan, module boundaries
-  - [Tags](docs/3.guides/2.tags.md) — custom tag registration
-  - [Testing](docs/3.guides/3.testing.md) — testing with sentinel
-- **Cookbook**
-  - [ERD Diagrams](docs/4.cookbook/1.erd-diagrams.md) — visualize domain models
-  - [Database Schemas](docs/4.cookbook/2.database-schemas.md) — structurally safe queries
-  - [API Documentation](docs/4.cookbook/3.api-documentation.md) — automatic OpenAPI generation
+  - [Scanning](docs/2.guides/1.scanning.md) — Inspect vs Scan, module boundaries
+  - [Tags](docs/2.guides/2.tags.md) — custom tag registration
+  - [Testing](docs/2.guides/3.testing.md) — testing with sentinel
+  - [Troubleshooting](docs/2.guides/4.troubleshooting.md) — common issues and solutions
+- **Integrations**
+  - [erd](docs/3.integrations/1.erd.md) — entity relationship diagrams
+  - [soy](docs/3.integrations/2.soy.md) — SQL injection-safe queries
+  - [rocco](docs/3.integrations/3.rocco.md) — OpenAPI generation
 - **Reference**
-  - [API](docs/5.reference/1.api.md) — complete function documentation
-  - [Types](docs/5.reference/2.types.md) — Metadata, FieldMetadata, TypeRelationship
+  - [API](docs/4.reference/1.api.md) — complete function documentation
+  - [Types](docs/4.reference/2.types.md) — Metadata, FieldMetadata, TypeRelationship
 
 ## Contributing
 
