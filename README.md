@@ -51,8 +51,8 @@ relationships := sentinel.GetRelationships[User]()
 // []TypeRelationship (2 relationships)
 
 rel := relationships[0]
-// rel.From      → "User"
-// rel.To        → "Profile"
+// rel.From      → "github.com/app/models.User"
+// rel.To        → "github.com/app/models.Profile"
 // rel.Field     → "Profile"
 // rel.Kind      → "reference"
 // rel.ToPackage → "github.com/app/models"
