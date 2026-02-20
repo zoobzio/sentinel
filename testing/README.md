@@ -2,7 +2,8 @@
 
 Testing strategy and utilities for sentinel.
 
-> **Note:** The testing helpers and `Reset()` function require the `testing` build tag. Use `go test -tags testing` or the Makefile targets which include this flag automatically.
+> [!NOTE]
+> The testing helpers and `Reset()` function require the `testing` build tag. Use `go test -tags testing` or the Makefile targets which include this flag automatically.
 
 ## Structure
 
