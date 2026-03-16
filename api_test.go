@@ -139,9 +139,9 @@ func TestInspect(t *testing.T) {
 			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
 		}
 
-		// Should have 7 fields (6 exported + 1 unexported, all included)
-		if len(metadata.Fields) != 7 {
-			t.Fatalf("expected 7 fields, got %d", len(metadata.Fields))
+		// Should have 6 exported fields (private field excluded)
+		if len(metadata.Fields) != 6 {
+			t.Fatalf("expected 6 fields, got %d", len(metadata.Fields))
 		}
 
 		// Check specific field metadata
@@ -518,14 +518,8 @@ func TestEdgeCases(t *testing.T) {
 
 		metadata := Inspect[PrivateStruct]()
 
-		// Unexported fields are included with Exported: false
-		if len(metadata.Fields) != 2 {
-			t.Errorf("expected 2 fields (both unexported), got %d", len(metadata.Fields))
-		}
-		for _, f := range metadata.Fields {
-			if f.Exported {
-				t.Errorf("field %s: expected Exported false, got true", f.Name)
-			}
+		if len(metadata.Fields) != 0 {
+			t.Errorf("expected 0 exported fields, got %d", len(metadata.Fields))
 		}
 	})
 
@@ -568,6 +562,89 @@ func TestScanEdgeCases(t *testing.T) {
 
 		if metadata.TypeName != "TestUser" {
 			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
+		}
+	})
+
+	t.Run("exported flag via Scan", func(t *testing.T) {
+		type ScanExportedStruct struct {
+			Name  string `json:"name"`
+			Value int    `json:"value"`
+		}
+
+		metadata := Scan[ScanExportedStruct]()
+
+		for _, f := range metadata.Fields {
+			if !f.Exported {
+				t.Errorf("field %s: expected Exported true via Scan", f.Name)
+			}
+		}
+	})
+}
+
+func TestTryInspect(t *testing.T) {
+	t.Run("returns metadata with Exported true on all fields", func(t *testing.T) {
+		type TryInspectStruct struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		}
+
+		metadata, err := TryInspect[TryInspectStruct]()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(metadata.Fields) != 2 {
+			t.Fatalf("expected 2 fields, got %d", len(metadata.Fields))
+		}
+
+		for _, f := range metadata.Fields {
+			if !f.Exported {
+				t.Errorf("field %s: expected Exported true via TryInspect", f.Name)
+			}
+		}
+	})
+
+	t.Run("returns ErrNotStruct for non-struct type", func(t *testing.T) {
+		_, err := TryInspect[string]()
+		if err == nil {
+			t.Fatal("expected ErrNotStruct, got nil")
+		}
+		if err != ErrNotStruct {
+			t.Errorf("expected ErrNotStruct, got %v", err)
+		}
+	})
+}
+
+func TestTryScan(t *testing.T) {
+	t.Run("returns metadata with Exported true on all fields", func(t *testing.T) {
+		type TryScanStruct struct {
+			Label string `json:"label"`
+			Count int    `json:"count"`
+		}
+
+		metadata, err := TryScan[TryScanStruct]()
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(metadata.Fields) != 2 {
+			t.Fatalf("expected 2 fields, got %d", len(metadata.Fields))
+		}
+
+		for _, f := range metadata.Fields {
+			if !f.Exported {
+				t.Errorf("field %s: expected Exported true via TryScan", f.Name)
+			}
+		}
+	})
+
+	t.Run("returns ErrNotStruct for non-struct type", func(t *testing.T) {
+		_, err := TryScan[int]()
+		if err == nil {
+			t.Fatal("expected ErrNotStruct, got nil")
+		}
+		if err != ErrNotStruct {
+			t.Errorf("expected ErrNotStruct, got %v", err)
 		}
 	})
 }

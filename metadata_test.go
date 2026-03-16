@@ -162,6 +162,7 @@ func TestFieldMetadata(t *testing.T) {
 
 func TestFieldMetadataExportedJSON(t *testing.T) {
 	t.Run("exported true appears in json", func(t *testing.T) {
+		// All extracted fields are exported; Exported: true must appear in JSON output
 		field := FieldMetadata{
 			Name:     "ID",
 			Type:     "string",
@@ -174,22 +175,6 @@ func TestFieldMetadataExportedJSON(t *testing.T) {
 		}
 		if !strings.Contains(string(data), `"exported":true`) {
 			t.Errorf("expected JSON to contain \"exported\":true, got %s", data)
-		}
-	})
-
-	t.Run("exported false appears in json", func(t *testing.T) {
-		field := FieldMetadata{
-			Name:     "private",
-			Type:     "string",
-			Kind:     KindScalar,
-			Exported: false,
-		}
-		data, err := json.Marshal(field)
-		if err != nil {
-			t.Fatalf("unexpected marshal error: %v", err)
-		}
-		if !strings.Contains(string(data), `"exported":false`) {
-			t.Errorf("expected JSON to contain \"exported\":false, got %s", data)
 		}
 	})
 }

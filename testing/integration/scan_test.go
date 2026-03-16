@@ -581,7 +581,7 @@ func TestFieldMetadataAccuracy(t *testing.T) {
 	})
 }
 
-func TestUnexportedFieldsIncluded(t *testing.T) {
+func TestUnexportedFieldsIgnored(t *testing.T) {
 	type WithUnexported struct {
 		Public  string `json:"public"`
 		private string //nolint:unused
@@ -589,30 +589,16 @@ func TestUnexportedFieldsIncluded(t *testing.T) {
 
 	metadata := sentinel.Inspect[WithUnexported]()
 
-	// Unexported fields are included with Exported: false
-	if len(metadata.Fields) != 2 {
-		t.Fatalf("expected 2 fields (exported and unexported), got %d", len(metadata.Fields))
+	if len(metadata.Fields) != 1 {
+		t.Errorf("expected 1 field (only Public), got %d", len(metadata.Fields))
 	}
 
-	fieldMap := make(map[string]sentinel.FieldMetadata)
-	for _, f := range metadata.Fields {
-		fieldMap[f.Name] = f
+	if metadata.Fields[0].Name != "Public" {
+		t.Errorf("expected field 'Public', got %s", metadata.Fields[0].Name)
 	}
 
-	public, ok := fieldMap["Public"]
-	if !ok {
-		t.Fatal("expected field 'Public' to be present")
-	}
-	if !public.Exported {
+	if !metadata.Fields[0].Exported {
 		t.Errorf("expected Public field to have Exported: true")
-	}
-
-	private, ok := fieldMap["private"]
-	if !ok {
-		t.Fatal("expected field 'private' to be present")
-	}
-	if private.Exported {
-		t.Errorf("expected private field to have Exported: false")
 	}
 }
 

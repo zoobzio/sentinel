@@ -23,7 +23,7 @@ type Metadata struct {
 	FQDN          string             `json:"fqdn"`         // Fully qualified type name (e.g., "github.com/app/models.User")
 	TypeName      string             `json:"type_name"`    // Simple type name (e.g., "User")
 	PackageName   string             `json:"package_name"` // Package path (e.g., "github.com/app/models")
-	Fields        []FieldMetadata    `json:"fields"`
+	Fields        []FieldMetadata    `json:"fields"`          // Exported fields only; unexported fields are not included.
 	Relationships []TypeRelationship `json:"relationships,omitempty"`
 }
 
@@ -35,7 +35,7 @@ type FieldMetadata struct {
 	Type        string            `json:"type"`
 	Kind        FieldKind         `json:"kind"`
 	Index       []int             `json:"index"`
-	Exported    bool              `json:"exported"`
+	Exported    bool              `json:"exported"` // Whether the field is exported. Always true in v1; sentinel only extracts exported fields.
 }
 
 // getFQDN returns the fully qualified type name (package path + type name).
