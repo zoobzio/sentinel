@@ -30,11 +30,12 @@ metadata := sentinel.Scan[User]()
 // metadata.Relationships → []TypeRelationship (2 relationships)
 
 field := metadata.Fields[0]
-// field.Name  → "ID"
-// field.Type  → "string"
-// field.Kind  → "scalar"
-// field.Tags  → {"json": "id", "db": "id", "validate": "required"}
-// field.Index → []int{0}
+// field.Name     → "ID"
+// field.Type     → "string"
+// field.Kind     → "scalar"
+// field.Exported → true
+// field.Tags     → {"json": "id", "db": "id", "validate": "required"}
+// field.Index    → []int{0}
 ```
 
 One call extracts metadata for `User` and every type it touches — `Profile`, `Order`, and anything they reference. All cached permanently.
@@ -100,11 +101,11 @@ func main() {
 
     // Field metadata
     for _, field := range metadata.Fields {
-        fmt.Printf("%s (%s): %v\n", field.Name, field.Kind, field.Tags)
+        fmt.Printf("%s (%s, exported=%t): %v\n", field.Name, field.Kind, field.Exported, field.Tags)
     }
-    // ID (scalar): map[json:id db:user_id]
-    // Email (scalar): map[json:email validate:required,email]
-    // Orders (slice): map[]
+    // ID (scalar, exported=true): map[json:id db:user_id]
+    // Email (scalar, exported=true): map[json:email validate:required,email]
+    // Orders (slice, exported=true): map[]
 
     // Relationships
     for _, rel := range metadata.Relationships {

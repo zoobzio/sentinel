@@ -35,6 +35,7 @@ type FieldMetadata struct {
 	Type        string            `json:"type"`
 	Kind        FieldKind         `json:"kind"`
 	Index       []int             `json:"index"`
+	Exported    bool              `json:"exported"`
 }
 
 // getFQDN returns the fully qualified type name (package path + type name).

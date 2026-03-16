@@ -71,16 +71,28 @@ func TestExtractMetadata(t *testing.T) {
 		typ := reflect.TypeOf(ComplexStruct{})
 		metadata := s.extractMetadata(typ)
 
-		// Should only have 3 fields (unexported excluded)
-		if len(metadata.Fields) != 3 {
-			t.Errorf("expected 3 fields, got %d", len(metadata.Fields))
+		// Unexported fields are now included with Exported: false
+		if len(metadata.Fields) != 4 {
+			t.Errorf("expected 4 fields, got %d", len(metadata.Fields))
 		}
 
-		// Verify field names
-		expectedNames := []string{"ID", "Name", "Active"}
-		for i, expected := range expectedNames {
-			if metadata.Fields[i].Name != expected {
-				t.Errorf("field %d: expected name %s, got %s", i, expected, metadata.Fields[i].Name)
+		// Verify field names and exported status
+		type expectedField struct {
+			name     string
+			exported bool
+		}
+		expected := []expectedField{
+			{"ID", true},
+			{"Name", true},
+			{"Active", true},
+			{"unexported", false},
+		}
+		for i, exp := range expected {
+			if metadata.Fields[i].Name != exp.name {
+				t.Errorf("field %d: expected name %s, got %s", i, exp.name, metadata.Fields[i].Name)
+			}
+			if metadata.Fields[i].Exported != exp.exported {
+				t.Errorf("field %s: expected Exported %v, got %v", exp.name, exp.exported, metadata.Fields[i].Exported)
 			}
 		}
 	})
@@ -577,6 +589,66 @@ func TestExtractFieldMetadata(t *testing.T) {
 			if fields[i].ReflectType.Kind() != expectedKind {
 				t.Errorf("field %d: expected reflect.Kind %v, got %v",
 					i, expectedKind, fields[i].ReflectType.Kind())
+			}
+		}
+	})
+
+	t.Run("exported flag on exported and unexported fields", func(t *testing.T) {
+		type MixedStruct struct {
+			Public  string `json:"public"`
+			private string //nolint:unused
+		}
+
+		fields := s.extractFieldMetadata(reflect.TypeOf(MixedStruct{}))
+		if len(fields) != 2 {
+			t.Fatalf("expected 2 fields, got %d", len(fields))
+		}
+
+		// First field: exported
+		if fields[0].Name != "Public" {
+			t.Errorf("expected first field name 'Public', got %s", fields[0].Name)
+		}
+		if !fields[0].Exported {
+			t.Errorf("expected Public field to have Exported: true")
+		}
+
+		// Second field: unexported
+		if fields[1].Name != "private" {
+			t.Errorf("expected second field name 'private', got %s", fields[1].Name)
+		}
+		if fields[1].Exported {
+			t.Errorf("expected private field to have Exported: false")
+		}
+	})
+
+	t.Run("all exported fields have Exported true", func(t *testing.T) {
+		type AllExported struct {
+			A string
+			B int
+			C bool
+		}
+
+		fields := s.extractFieldMetadata(reflect.TypeOf(AllExported{}))
+		for _, f := range fields {
+			if !f.Exported {
+				t.Errorf("field %s: expected Exported true, got false", f.Name)
+			}
+		}
+	})
+
+	t.Run("all unexported fields have Exported false", func(t *testing.T) {
+		type AllUnexported struct {
+			a string //nolint:unused
+			b int    //nolint:unused
+		}
+
+		fields := s.extractFieldMetadata(reflect.TypeOf(AllUnexported{}))
+		if len(fields) != 2 {
+			t.Fatalf("expected 2 fields, got %d", len(fields))
+		}
+		for _, f := range fields {
+			if f.Exported {
+				t.Errorf("field %s: expected Exported false, got true", f.Name)
 			}
 		}
 	})

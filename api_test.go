@@ -139,9 +139,9 @@ func TestInspect(t *testing.T) {
 			t.Errorf("expected TypeName 'TestUser', got %s", metadata.TypeName)
 		}
 
-		// Should have 6 exported fields (private field excluded)
-		if len(metadata.Fields) != 6 {
-			t.Fatalf("expected 6 fields, got %d", len(metadata.Fields))
+		// Should have 7 fields (6 exported + 1 unexported, all included)
+		if len(metadata.Fields) != 7 {
+			t.Fatalf("expected 7 fields, got %d", len(metadata.Fields))
 		}
 
 		// Check specific field metadata
@@ -518,8 +518,14 @@ func TestEdgeCases(t *testing.T) {
 
 		metadata := Inspect[PrivateStruct]()
 
-		if len(metadata.Fields) != 0 {
-			t.Errorf("expected 0 exported fields, got %d", len(metadata.Fields))
+		// Unexported fields are included with Exported: false
+		if len(metadata.Fields) != 2 {
+			t.Errorf("expected 2 fields (both unexported), got %d", len(metadata.Fields))
+		}
+		for _, f := range metadata.Fields {
+			if f.Exported {
+				t.Errorf("field %s: expected Exported false, got true", f.Name)
+			}
 		}
 	})
 

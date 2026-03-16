@@ -99,10 +99,6 @@ func (s *Sentinel) extractFieldMetadata(t reflect.Type) []FieldMetadata {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 
-		if !field.IsExported() {
-			continue
-		}
-
 		// Extract all tags
 		tags := make(map[string]string)
 
@@ -128,6 +124,7 @@ func (s *Sentinel) extractFieldMetadata(t reflect.Type) []FieldMetadata {
 			Name:        field.Name,
 			Type:        field.Type.String(),
 			Kind:        getFieldKind(field.Type),
+			Exported:    field.IsExported(),
 			ReflectType: field.Type,
 			Tags:        tags,
 		}

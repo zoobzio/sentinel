@@ -1,7 +1,9 @@
 package sentinel
 
 import (
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -116,11 +118,12 @@ func TestFieldMetadata(t *testing.T) {
 		fieldType := reflect.TypeOf(field)
 
 		expectedTags := map[string]string{
-			"Index": "index",
-			"Tags":  "tags,omitempty",
-			"Name":  "name",
-			"Type":  "type",
-			"Kind":  "kind",
+			"Index":    "index",
+			"Tags":     "tags,omitempty",
+			"Name":     "name",
+			"Type":     "type",
+			"Kind":     "kind",
+			"Exported": "exported",
 		}
 
 		for fieldName, expectedTag := range expectedTags {
@@ -154,6 +157,40 @@ func TestFieldMetadata(t *testing.T) {
 
 		// Should not panic.
 		// When Tags is nil, this is expected and allowed behavior.
+	})
+}
+
+func TestFieldMetadataExportedJSON(t *testing.T) {
+	t.Run("exported true appears in json", func(t *testing.T) {
+		field := FieldMetadata{
+			Name:     "ID",
+			Type:     "string",
+			Kind:     KindScalar,
+			Exported: true,
+		}
+		data, err := json.Marshal(field)
+		if err != nil {
+			t.Fatalf("unexpected marshal error: %v", err)
+		}
+		if !strings.Contains(string(data), `"exported":true`) {
+			t.Errorf("expected JSON to contain \"exported\":true, got %s", data)
+		}
+	})
+
+	t.Run("exported false appears in json", func(t *testing.T) {
+		field := FieldMetadata{
+			Name:     "private",
+			Type:     "string",
+			Kind:     KindScalar,
+			Exported: false,
+		}
+		data, err := json.Marshal(field)
+		if err != nil {
+			t.Fatalf("unexpected marshal error: %v", err)
+		}
+		if !strings.Contains(string(data), `"exported":false`) {
+			t.Errorf("expected JSON to contain \"exported\":false, got %s", data)
+		}
 	})
 }
 
