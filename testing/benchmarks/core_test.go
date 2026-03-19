@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zoobzio/sentinel"
+	"github.com/zoobz-io/sentinel"
 )
 
 // Benchmark struct with various field types and tags.

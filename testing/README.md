@@ -56,7 +56,7 @@ make test-bench
 The `testing` package provides domain-specific assertions:
 
 ```go
-import sentineltest "github.com/zoobzio/sentinel/testing"
+import sentineltest "github.com/zoobz-io/sentinel/testing"
 
 func TestExample(t *testing.T) {
     metadata := sentinel.Inspect[MyType]()

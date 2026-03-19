@@ -1,13 +1,13 @@
 # sentinel
 
-[![CI Status](https://github.com/zoobzio/sentinel/workflows/CI/badge.svg)](https://github.com/zoobzio/sentinel/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/zoobzio/sentinel/graph/badge.svg?branch=main)](https://codecov.io/gh/zoobzio/sentinel)
-[![Go Report Card](https://goreportcard.com/badge/github.com/zoobzio/sentinel)](https://goreportcard.com/report/github.com/zoobzio/sentinel)
-[![CodeQL](https://github.com/zoobzio/sentinel/workflows/CodeQL/badge.svg)](https://github.com/zoobzio/sentinel/security/code-scanning)
-[![Go Reference](https://pkg.go.dev/badge/github.com/zoobzio/sentinel.svg)](https://pkg.go.dev/github.com/zoobzio/sentinel)
-[![License](https://img.shields.io/github/license/zoobzio/sentinel)](LICENSE)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/zoobzio/sentinel)](go.mod)
-[![Release](https://img.shields.io/github/v/release/zoobzio/sentinel)](https://github.com/zoobzio/sentinel/releases)
+[![CI Status](https://github.com/zoobz-io/sentinel/workflows/CI/badge.svg)](https://github.com/zoobz-io/sentinel/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/zoobz-io/sentinel/graph/badge.svg?branch=main)](https://codecov.io/gh/zoobz-io/sentinel)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zoobz-io/sentinel)](https://goreportcard.com/report/github.com/zoobz-io/sentinel)
+[![CodeQL](https://github.com/zoobz-io/sentinel/workflows/CodeQL/badge.svg)](https://github.com/zoobz-io/sentinel/security/code-scanning)
+[![Go Reference](https://pkg.go.dev/badge/github.com/zoobz-io/sentinel.svg)](https://pkg.go.dev/github.com/zoobz-io/sentinel)
+[![License](https://img.shields.io/github/license/zoobz-io/sentinel)](LICENSE)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/zoobz-io/sentinel)](go.mod)
+[![Release](https://img.shields.io/github/v/release/zoobz-io/sentinel)](https://github.com/zoobz-io/sentinel/releases)
 
 Zero-dependency struct introspection for Go.
 
@@ -63,7 +63,7 @@ Types don't change at runtime. Neither does their metadata.
 ## Install
 
 ```bash
-go get github.com/zoobzio/sentinel@latest
+go get github.com/zoobz-io/sentinel@latest
 ```
 
 Requires Go 1.24+.
@@ -75,7 +75,7 @@ package main
 
 import (
     "fmt"
-    "github.com/zoobzio/sentinel"
+    "github.com/zoobz-io/sentinel"
 )
 
 type Order struct {
