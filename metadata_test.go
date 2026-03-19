@@ -282,12 +282,12 @@ func TestGetFQDN(t *testing.T) {
 		{
 			name:     "named struct type",
 			input:    reflect.TypeOf(Metadata{}),
-			expected: "github.com/zoobzio/sentinel.Metadata",
+			expected: "github.com/zoobz-io/sentinel.Metadata",
 		},
 		{
 			name:     "pointer to struct",
 			input:    reflect.TypeOf(&Metadata{}),
-			expected: "github.com/zoobzio/sentinel.Metadata",
+			expected: "github.com/zoobz-io/sentinel.Metadata",
 		},
 		{
 			name:     "built-in string type",

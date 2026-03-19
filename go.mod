@@ -1,4 +1,4 @@
-module github.com/zoobzio/sentinel
+module github.com/zoobz-io/sentinel
 
 go 1.24
 

@@ -497,20 +497,20 @@ func TestIsInModuleDomain(t *testing.T) {
 	})
 
 	t.Run("package within module", func(t *testing.T) {
-		s := &Sentinel{modulePath: "github.com/zoobzio/sentinel"}
+		s := &Sentinel{modulePath: "github.com/zoobz-io/sentinel"}
 
-		if !s.isInModuleDomain("github.com/zoobzio/sentinel/internal/models") {
+		if !s.isInModuleDomain("github.com/zoobz-io/sentinel/internal/models") {
 			t.Error("expected true for package within module")
 		}
 
 		// Exact module path
-		if !s.isInModuleDomain("github.com/zoobzio/sentinel") {
+		if !s.isInModuleDomain("github.com/zoobz-io/sentinel") {
 			t.Error("expected true for exact module path")
 		}
 	})
 
 	t.Run("package outside module", func(t *testing.T) {
-		s := &Sentinel{modulePath: "github.com/zoobzio/sentinel"}
+		s := &Sentinel{modulePath: "github.com/zoobz-io/sentinel"}
 
 		if s.isInModuleDomain("github.com/other/repo") {
 			t.Error("expected false for package outside module")
@@ -541,8 +541,8 @@ func TestDetectModulePath(t *testing.T) {
 	}
 
 	// Should be our module path
-	if path != "github.com/zoobzio/sentinel" {
-		t.Errorf("expected module path 'github.com/zoobzio/sentinel', got %q", path)
+	if path != "github.com/zoobz-io/sentinel" {
+		t.Errorf("expected module path 'github.com/zoobz-io/sentinel', got %q", path)
 	}
 }
 

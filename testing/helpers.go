@@ -6,7 +6,7 @@ package testing
 import (
 	"testing"
 
-	"github.com/zoobzio/sentinel"
+	"github.com/zoobz-io/sentinel"
 )
 
 // AssertMetadataValid verifies that metadata has required fields populated.

@@ -93,7 +93,7 @@ changelog:
 # Release configuration
 release:
   github:
-    owner: zoobzio
+    owner: zoobz-io
     name: sentinel
 
   # Release name template
@@ -117,7 +117,7 @@ release:
     ### Installation
 
     ```bash
-    go get github.com/zoobzio/sentinel@v{{ .Version }}
+    go get github.com/zoobz-io/sentinel@v{{ .Version }}
     ```
 
     ### Requirements
@@ -127,8 +127,8 @@ release:
   footer: |
     ---
 
-    **Full Documentation:** https://github.com/zoobzio/sentinel/tree/v{{ .Version }}/docs
-    **Examples:** https://github.com/zoobzio/sentinel/tree/v{{ .Version }}/examples
+    **Full Documentation:** https://github.com/zoobz-io/sentinel/tree/v{{ .Version }}/docs
+    **Examples:** https://github.com/zoobz-io/sentinel/tree/v{{ .Version }}/examples
 
     Thanks to all contributors!
 

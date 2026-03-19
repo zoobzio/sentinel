@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zoobzio/sentinel"
+	"github.com/zoobz-io/sentinel"
 )
 
 // Test types for relationship and scan testing.

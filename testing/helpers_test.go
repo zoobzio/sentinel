@@ -5,7 +5,7 @@ package testing
 import (
 	"testing"
 
-	"github.com/zoobzio/sentinel"
+	"github.com/zoobz-io/sentinel"
 )
 
 // mockT captures test failures without failing the actual test.
